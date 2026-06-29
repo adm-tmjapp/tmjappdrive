@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TMJ Drive - Carteira</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c62f78",
+                        "background-light": "#f8f6f7",
+                        "background-dark": "#000000",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<div class="flex-1 flex flex-col max-w-md mx-auto w-full bg-background-dark min-h-screen">
+<header class="flex items-center p-4 sticky top-0 bg-background-dark/80 backdrop-blur-md z-10">
+<button class="p-2 hover:bg-white/10 rounded-full transition-colors">
+<span class="material-symbols-outlined text-white">arrow_back</span>
+</button>
+<h1 class="flex-1 text-center text-lg font-bold text-white mr-10">Carteira</h1>
+</header>
+<main class="flex-1 px-4 pb-24">
+<section class="text-center py-8">
+<p class="text-slate-400 text-sm font-medium mb-1">Saldo Disponível</p>
+<h2 class="text-4xl font-bold text-white tracking-tight">R$ 450,20</h2>
+<div class="mt-6">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-primary/20">
+                        Transferir para conta
+                    </button>
+</div>
+</section>
+<section class="mb-8">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-white font-bold text-lg">Ganhos da Semana</h3>
+<span class="text-primary text-sm font-medium">Ver detalhes</span>
+</div>
+<div class="bg-white/5 border border-white/10 rounded-xl p-4">
+<div class="flex items-end justify-between h-32 gap-2 mb-4">
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-white/10 rounded-t-sm h-12"></div>
+<span class="text-[10px] text-slate-500">SEG</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-white/10 rounded-t-sm h-20"></div>
+<span class="text-[10px] text-slate-500">TER</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary/60 rounded-t-sm h-24"></div>
+<span class="text-[10px] text-slate-500">QUA</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-primary rounded-t-sm h-28"></div>
+<span class="text-[10px] text-slate-500">QUI</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-white/10 rounded-t-sm h-16"></div>
+<span class="text-[10px] text-slate-500">VET</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-white/10 rounded-t-sm h-8"></div>
+<span class="text-[10px] text-slate-500">SAB</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-white/10 rounded-t-sm h-4"></div>
+<span class="text-[10px] text-slate-500">DOM</span>
+</div>
+</div>
+<div class="flex justify-between items-center pt-2 border-t border-white/5">
+<p class="text-slate-400 text-xs">Total acumulado</p>
+<p class="text-white font-bold">R$ 1.240,00</p>
+</div>
+</div>
+</section>
+<section>
+<h3 class="text-white font-bold text-lg mb-4">Atividade Recente</h3>
+<div class="space-y-1">
+<div class="flex items-center justify-between p-4 bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">directions_car</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Corrida #12345</p>
+<p class="text-slate-500 text-xs">Hoje, 14:20</p>
+</div>
+</div>
+<p class="text-white font-bold">R$ 24,50</p>
+</div>
+<div class="flex items-center justify-between p-4 bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-400 text-xl">account_balance_wallet</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Transferência concluída</p>
+<p class="text-slate-500 text-xs">Ontem, 09:15</p>
+</div>
+</div>
+<p class="text-slate-400 font-bold">- R$ 300,00</p>
+</div>
+<div class="flex items-center justify-between p-4 bg-white/5 border-b border-white/5 hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-green-400 text-xl">redeem</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Bônus de indicação</p>
+<p class="text-slate-500 text-xs">15 Out, 18:30</p>
+</div>
+</div>
+<p class="text-white font-bold">R$ 50,00</p>
+</div>
+<div class="flex items-center justify-between p-4 bg-white/5 rounded-b-xl hover:bg-white/10 transition-colors">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">directions_car</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Corrida #12344</p>
+<p class="text-slate-500 text-xs">15 Out, 17:10</p>
+</div>
+</div>
+<p class="text-white font-bold">R$ 18,20</p>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-[#1a1a1a] border-t border-white/10 flex justify-around items-center px-2 py-3 z-20">
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">home</span>
+<span class="text-[10px] font-medium text-slate-500 group-hover:text-white transition-colors">Início</span>
+</a>
+<a class="flex flex-col items-center gap-1" href="#">
+<span class="material-symbols-outlined text-primary active-icon">account_balance_wallet</span>
+<span class="text-[10px] font-medium text-primary">Carteira</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">history</span>
+<span class="text-[10px] font-medium text-slate-500 group-hover:text-white transition-colors">Histórico</span>
+</a>
+<a class="flex flex-col items-center gap-1 group" href="#">
+<span class="material-symbols-outlined text-slate-500 group-hover:text-white transition-colors">person</span>
+<span class="text-[10px] font-medium text-slate-500 group-hover:text-white transition-colors">Perfil</span>
+</a>
+</nav>
+</div>
+</body></html>

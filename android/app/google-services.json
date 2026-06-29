@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "676772292779",
+    "project_id": "tmjapp-46d78",
+    "storage_bucket": "tmjapp-46d78.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:676772292779:android:9a6f4c9b8d5a838d77afee",
+        "android_client_info": {
+          "package_name": "br.com.tmjapp.tmjapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwGG4Lt4FMzwe7YGqRsVdNnX79fGw0ljw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:676772292779:android:70c42571f8ce26af77afee",
+        "android_client_info": {
+          "package_name": "br.com.tmjapp.tmjapp.drive.tmjappdrive"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwGG4Lt4FMzwe7YGqRsVdNnX79fGw0ljw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

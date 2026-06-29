@@ -1,0 +1,12 @@
+https://chatgpt.com/stitch/project/10039660767394547715/screen/1ed4dd6d22cd49a0ab6a196dc16005d0
+https://chatgpt.com/stitch/project/10039660767394547715/screen/02ee4c4a570a40248eda63341ef25173
+https://chatgpt.com/stitch/project/10039660767394547715/screen/73ba01366fdf4b1ebaf587f00191c076
+https://chatgpt.com/stitch/project/10039660767394547715/screen/4b8868ce42604253ad4abf10c59e1954
+https://chatgpt.com/stitch/projects/10039660767394547715/screens/1ed4dd6d22cd49a0ab6a196dc16005d0
+https://chatgpt.com/stitch/projects/10039660767394547715/screens/02ee4c4a570a40248eda63341ef25173
+https://chatgpt.com/stitch/projects/10039660767394547715/screens/73ba01366fdf4b1ebaf587f00191c076
+https://chatgpt.com/stitch/projects/10039660767394547715/screens/4b8868ce42604253ad4abf10c59e1954
+https://api.openai.com/v1/stitch/projects/10039660767394547715/screens/1ed4dd6d22cd49a0ab6a196dc16005d0
+https://api.openai.com/v1/stitch/projects/10039660767394547715/screens/02ee4c4a570a40248eda63341ef25173
+https://api.openai.com/v1/stitch/projects/10039660767394547715/screens/73ba01366fdf4b1ebaf587f00191c076
+https://api.openai.com/v1/stitch/projects/10039660767394547715/screens/4b8868ce42604253ad4abf10c59e1954
