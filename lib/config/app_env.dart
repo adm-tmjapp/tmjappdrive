@@ -37,7 +37,7 @@ class AppEnv {
 
     if (isProd) {
       return _normalizeBaseUrl(
-        'https://tmjapp-api-production.up.railway.app/api/',
+        'https://tmjapp-api-53m7i55c3q-rj.a.run.app/api/',
       );
     }
 
