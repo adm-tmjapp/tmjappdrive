@@ -361,7 +361,12 @@ class _OnboardingVehiclePhotosScreenState
   }
 
   Future<void> _pick(_VehiclePhotoStep step, ImageSource source) async {
-    final image = await _picker.pickImage(source: source, imageQuality: 85);
+    final image = await _picker.pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 1080,
+      maxHeight: 1920,
+    );
     if (image == null) return;
     setState(() {
       final file = File(image.path);

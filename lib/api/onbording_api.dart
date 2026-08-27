@@ -11,22 +11,34 @@ import 'base_api.dart';
 class OnbordingApi {
   BaseApi baseApi = BaseApi();
 
+  Future<MultipartFile> _uploadFile(String field, String path) {
+    final extension = path.split('.').last.toLowerCase();
+    final contentType = switch (extension) {
+      'png' => MediaType('image', 'png'),
+      'pdf' => MediaType('application', 'pdf'),
+      _ => MediaType('image', 'jpeg'),
+    };
+    return MultipartFile.fromPath(field, path, contentType: contentType);
+  }
+
   /// Função auxiliar para decodificar o JSON de forma segura
   T? _parseJson<T>(
     dynamic decodedBody,
     T Function(Map<String, dynamic>) fromJson,
   ) {
     if (decodedBody is Map<String, dynamic>) {
-      // 1. Tenta ler de dentro da chave 'data'
-      if (decodedBody.containsKey('data') &&
-          decodedBody['data'] is Map<String, dynamic>) {
-        return fromJson(decodedBody['data']);
-      }
-      // 2. Tenta ler da raiz
-      try {
-        return fromJson(decodedBody);
-      } catch (e) {
-        return null;
+      final candidates = <Map<String, dynamic>>[
+        if (decodedBody['data'] is Map<String, dynamic>)
+          decodedBody['data'] as Map<String, dynamic>,
+        decodedBody,
+      ];
+      for (final candidate in candidates) {
+        try {
+          return fromJson(candidate);
+        } catch (_) {
+          // Some successful upload endpoints return only the uploaded resource,
+          // not the model used by older versions of the app.
+        }
       }
     }
     return null;
@@ -199,7 +211,7 @@ class OnbordingApi {
     try {
       final uri = Uri.parse('${baseApi.baseUrl}v2/driver/profile/photo');
       final request = MultipartRequest('PUT', uri);
-      request.files.add(await MultipartFile.fromPath('file', filePath));
+      request.files.add(await _uploadFile('file', filePath));
 
       final headers = await baseApi.getHeaders();
       headers.remove('Content-Type');
@@ -209,8 +221,15 @@ class OnbordingApi {
       final response = await Response.fromStream(streamed);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final decodedBody = jsonDecode(response.body);
-        final result = _parseJson(decodedBody, ResponseSingup.fromJson);
+        ResponseSingup? result;
+        try {
+          final decodedBody = jsonDecode(response.body);
+          result = _parseJson(decodedBody, ResponseSingup.fromJson);
+        } catch (_) {
+          // The HTTP status is authoritative for uploads; the response model
+          // differs between API versions and is not needed by onboarding.
+        }
+        result ??= ResponseSingup(success: true, user: null);
         return ApiResponseModel(response, result);
       } else {
         return ApiResponseModel(response, null);
@@ -229,11 +248,9 @@ class OnbordingApi {
       final uri = Uri.parse('${baseApi.baseUrl}v2/driver/onboarding/documents');
       final request = MultipartRequest('POST', uri);
 
-      request.files.add(
-        await MultipartFile.fromPath('cnhFront', cnhFront.path),
-      );
-      request.files.add(await MultipartFile.fromPath('cnhBack', cnhBack.path));
-      request.files.add(await MultipartFile.fromPath('selfie', selfie.path));
+      request.files.add(await _uploadFile('cnhFront', cnhFront.path));
+      request.files.add(await _uploadFile('cnhBack', cnhBack.path));
+      request.files.add(await _uploadFile('selfie', selfie.path));
 
       final headers = await baseApi.getHeaders();
       headers.remove('Content-Type');
@@ -243,14 +260,26 @@ class OnbordingApi {
       final response = await Response.fromStream(streamed);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final decodedBody = jsonDecode(response.body);
-        if (decodedBody is Map<String, dynamic> &&
-            decodedBody['onboardingStatus'] is Map<String, dynamic>) {
-          return ApiResponseModel(
-            response,
-            OnboardingStatus.fromJson(decodedBody['onboardingStatus']),
-          );
+        try {
+          final decodedBody = jsonDecode(response.body);
+          final statusPayload =
+              decodedBody is Map<String, dynamic>
+                  ? (decodedBody['onboardingStatus'] ??
+                      (decodedBody['data'] is Map<String, dynamic>
+                          ? decodedBody['data']['onboardingStatus']
+                          : null))
+                  : null;
+          if (statusPayload is Map<String, dynamic>) {
+            return ApiResponseModel(
+              response,
+              OnboardingStatus.fromJson(statusPayload),
+            );
+          }
+        } catch (_) {
+          // A successful upload does not require an onboarding snapshot in the
+          // same response; the controller reloads it immediately afterwards.
         }
+        return ApiResponseModel(response, OnboardingStatus());
       }
 
       return ApiResponseModel(response, null);
@@ -269,7 +298,7 @@ class OnbordingApi {
       final uri = Uri.parse('${baseApi.baseUrl}users/upload-document');
       final request = MultipartRequest('POST', uri);
 
-      request.files.add(await MultipartFile.fromPath('file', filePath));
+      request.files.add(await _uploadFile('file', filePath));
       request.fields['userId'] = userId;
       request.fields['type'] = docType;
 
@@ -308,7 +337,7 @@ class OnbordingApi {
       final uri = Uri.parse('${baseApi.baseUrl}v2/driver-documents/upload');
       final request = MultipartRequest('POST', uri);
 
-      request.files.add(await MultipartFile.fromPath('file', filePath));
+      request.files.add(await _uploadFile('file', filePath));
       request.fields['user'] = user;
       request.fields['type'] = type;
 

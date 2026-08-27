@@ -11,6 +11,7 @@ class LoginRequested extends LoginEvent {
 
 class SignupRequested extends LoginEvent {
   final String phone;
+  final String cpf;
   final String name;
   final String lastName;
   final String email;
@@ -18,6 +19,7 @@ class SignupRequested extends LoginEvent {
 
   SignupRequested({
     required this.phone,
+    required this.cpf,
     required this.name,
     required this.lastName,
     required this.email,

@@ -75,6 +75,7 @@ class Authapi {
 
   Future<ApiResponseModel<ResponseSingup?>> signUp(
     String phone,
+    String cpf,
     String name,
     String lastName,
     String email,
@@ -86,6 +87,7 @@ class Authapi {
         "email": email,
         "password": password,
         "phone": phone,
+        "cpf": cpf,
         "role": "driver",
       };
 

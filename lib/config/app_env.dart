@@ -9,7 +9,9 @@ class AppEnv {
 
   static const String _envValue = String.fromEnvironment(
     'APP_ENV',
-    defaultValue: 'dev',
+    // A build without --dart-define normally runs on a physical device and
+    // must not point to Android emulator loopback (10.0.2.2).
+    defaultValue: 'prod',
   );
 
   static const String _apiBaseUrlOverride = String.fromEnvironment(

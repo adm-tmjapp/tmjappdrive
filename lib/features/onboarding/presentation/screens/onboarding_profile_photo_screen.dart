@@ -145,7 +145,12 @@ class _OnboardingProfilePhotoScreenState
   }
 
   Future<void> _pick(ImageSource source) async {
-    final picked = await _picker.pickImage(source: source, imageQuality: 85);
+    final picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 70,
+      maxWidth: 1080,
+      maxHeight: 1920,
+    );
     if (picked == null) return;
     setState(() => _selectedFile = File(picked.path));
   }

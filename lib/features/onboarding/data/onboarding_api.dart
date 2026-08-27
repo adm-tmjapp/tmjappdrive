@@ -102,17 +102,29 @@ class DriverOnboardingApi {
     String userId,
     DriverOnboardingVehiclePhotosInput input,
   ) async {
-    final front = await _legacyRepository.uploadVehicleFront(
-      userId,
-      input.front,
-    );
-    final back = await _legacyRepository.uploadVehicleBack(userId, input.back);
-    final interior = await _legacyRepository.uploadVehicleInterior(
-      userId,
-      input.interior,
-    );
-    if (front == null || back == null || interior == null) {
-      throw Exception('Falha ao enviar fotos do veiculo.');
+    final vehicle = await _profileApi.getVehicle();
+    if (vehicle == null || vehicle.id.trim().isEmpty) {
+      throw Exception(
+        'Veículo não encontrado. Conclua o cadastro do veículo antes das fotos.',
+      );
     }
+
+    await Future.wait([
+      _profileApi.uploadVehicleDocument(
+        vehicleId: vehicle.id,
+        type: 'VEHICLE_FRONT',
+        filePath: input.front.path,
+      ),
+      _profileApi.uploadVehicleDocument(
+        vehicleId: vehicle.id,
+        type: 'VEHICLE_BACK',
+        filePath: input.back.path,
+      ),
+      _profileApi.uploadVehicleDocument(
+        vehicleId: vehicle.id,
+        type: 'VEHICLE_INTERIOR',
+        filePath: input.interior.path,
+      ),
+    ]);
   }
 }

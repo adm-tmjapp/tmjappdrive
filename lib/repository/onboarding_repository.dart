@@ -97,7 +97,9 @@ class OnboardingRepository {
       userId,
     );
     if (response.badRequest) {
-      throw Exception(_extractApiMessage(response) ?? 'Falha ao enviar código.');
+      throw Exception(
+        _extractApiMessage(response) ?? 'Falha ao enviar código.',
+      );
     }
     return response.result;
   }
@@ -132,10 +134,15 @@ class OnboardingRepository {
       final decoded = jsonDecode(body);
       if (decoded is Map<String, dynamic>) {
         final message = decoded['message'];
+        final error = decoded['error'];
         if (message is String && message.trim().isNotEmpty) {
+          if (error is String &&
+              error.trim().isNotEmpty &&
+              error.trim() != message.trim()) {
+            return '${message.trim()}: ${error.trim()}';
+          }
           return message.trim();
         }
-        final error = decoded['error'];
         if (error is String && error.trim().isNotEmpty) {
           return error.trim();
         }
@@ -150,11 +157,8 @@ class OnboardingRepository {
       userId,
       photo.path,
     );
-    if (response.badRequest) {
-      return null;
-    } else {
-      return response.result;
-    }
+    _ensureUploadSucceeded(response, 'Falha ao enviar foto de perfil.');
+    return response.result ?? ResponseSingup(success: true, user: null);
   }
 
   Future<OnboardingStatus?> uploadOnboardingDocuments({
@@ -167,7 +171,8 @@ class OnboardingRepository {
       cnhBack: cnhBack,
       selfie: selfie,
     );
-    return response.badRequest ? null : response.result;
+    _ensureUploadSucceeded(response, 'Falha ao enviar documentos da CNH.');
+    return response.result ?? OnboardingStatus();
   }
 
   Future<Map<String, dynamic>?> uploadDocument(
@@ -196,7 +201,22 @@ class OnboardingRepository {
   ) async {
     ApiResponseModel<ResponseUploadDocument?> response = await api
         .uploadDriverDocument(user, type, photo.path);
-    return response.badRequest ? null : response.result;
+    _ensureUploadSucceeded(response, 'Falha ao enviar documento.');
+    return response.result ?? ResponseUploadDocument(success: true);
+  }
+
+  void _ensureUploadSucceeded(
+    ApiResponseModel<dynamic> response,
+    String fallback,
+  ) {
+    if (response.hasException) {
+      throw Exception(response.exceptionMessage ?? fallback);
+    }
+
+    final statusCode = response.response?.statusCode;
+    if (statusCode == null || statusCode < 200 || statusCode >= 300) {
+      throw Exception(_extractApiMessage(response) ?? fallback);
+    }
   }
 
   // Wrappers específicos para o Bloc

@@ -93,6 +93,7 @@ class AuthRepository {
 
   Future<ResponseSingup?>? signUp(
     String phone,
+    String cpf,
     String name,
     String lastName,
     String email,
@@ -101,11 +102,18 @@ class AuthRepository {
     await _ensurePrefs();
     ApiResponseModel<ResponseSingup?> apiResponse = await auth.signUp(
       phone,
+      cpf,
       name,
       lastName,
       email,
       password,
     );
+
+    if (apiResponse.hasException) {
+      throw Exception(
+        apiResponse.exceptionMessage ?? 'Não foi possível conectar à API.',
+      );
+    }
 
     if (apiResponse.response != null && apiResponse.response!.body.isNotEmpty) {
       try {
@@ -128,8 +136,8 @@ class AuthRepository {
       }
     }
 
-    if (apiResponse.badRequest) {
-      return null;
+    if (apiResponse.badRequest || apiResponse.serverError) {
+      throw Exception('Não foi possível cadastrar o usuário.');
     } else {
       return apiResponse.result;
     }

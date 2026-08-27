@@ -42,6 +42,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       // 2. Chama o repositório
       final response = await authRepository.signUp(
         event.phone,
+        event.cpf,
         event.name,
         event.lastName,
         event.email,

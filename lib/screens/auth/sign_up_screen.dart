@@ -79,6 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     context.read<LoginBloc>().add(
       SignupRequested(
         phone: _phoneController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+        cpf: _cpfController.text.replaceAll(RegExp(r'[^0-9]'), ''),
         name: firstName,
         lastName: lastName,
         email: _emailController.text.trim(),
@@ -218,6 +219,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         keyboardType: TextInputType.number,
                         prefixIcon: Icons.badge_outlined,
                         inputFormatters: [_cpfMask],
+                        validator: (value) {
+                          final digits =
+                              value?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+                          if (digits.length != 11) {
+                            return 'Informe um CPF válido';
+                          }
+                          return null;
+                        },
                       ),
                       _buildInput(
                         label: 'Senha',

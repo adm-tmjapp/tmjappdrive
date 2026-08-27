@@ -19,6 +19,14 @@ class ProfileApi {
 
   final BaseApi _baseApi;
 
+  MediaType _contentTypeFor(String path) {
+    return switch (path.split('.').last.toLowerCase()) {
+      'png' => MediaType('image', 'png'),
+      'pdf' => MediaType('application', 'pdf'),
+      _ => MediaType('image', 'jpeg'),
+    };
+  }
+
   Future<DriverProfile> getProfile() async {
     final response = await _baseApi.get(
       Uri(path: 'v2/driver/profile'),
@@ -295,7 +303,13 @@ class ProfileApi {
         '${_baseApi.baseUrl}v2/driver/profile/vehicles/$vehicleId/photo',
       ),
     );
-    request.files.add(await MultipartFile.fromPath('file', filePath));
+    request.files.add(
+      await MultipartFile.fromPath(
+        'file',
+        filePath,
+        contentType: _contentTypeFor(filePath),
+      ),
+    );
 
     final headers = await _baseApi.getHeaders();
     headers.remove('Content-Type');
@@ -357,7 +371,13 @@ class ProfileApi {
       ),
     );
     request.fields['type'] = type;
-    request.files.add(await MultipartFile.fromPath('file', filePath));
+    request.files.add(
+      await MultipartFile.fromPath(
+        'file',
+        filePath,
+        contentType: _contentTypeFor(filePath),
+      ),
+    );
 
     final headers = await _baseApi.getHeaders();
     headers.remove('Content-Type');
@@ -376,21 +396,56 @@ class ProfileApi {
     required String type,
     required String filePath,
   }) async {
-    final request = MultipartRequest(
+    final uploadRequest = MultipartRequest(
       'POST',
-      Uri.parse('${_baseApi.baseUrl}driver-documents/upload'),
+      Uri.parse('${_baseApi.baseUrl}v2/uploads'),
     );
-    request.fields['user'] = userId;
-    request.fields['type'] = type;
-    request.files.add(await MultipartFile.fromPath('file', filePath));
+    uploadRequest.fields['context'] = 'driver_onboarding_$type';
+    uploadRequest.files.add(
+      await MultipartFile.fromPath(
+        'file',
+        filePath,
+        contentType: _contentTypeFor(filePath),
+      ),
+    );
 
     final headers = await _baseApi.getHeaders();
     headers.remove('Content-Type');
-    request.headers.addAll(headers);
+    uploadRequest.headers.addAll(headers);
 
-    final streamed = await _baseApi.send(request);
-    final response = await Response.fromStream(streamed);
-    _parsePayload(response, fallbackError: 'Falha ao enviar documento.');
+    final uploadStreamed = await _baseApi.send(uploadRequest);
+    final uploadResponse = await Response.fromStream(uploadStreamed);
+    final uploadPayload = _parsePayload(
+      uploadResponse,
+      fallbackError: 'Falha ao enviar o arquivo do documento.',
+    );
+    final fileUrl = _nullableString(uploadPayload['url']);
+    if (fileUrl == null) {
+      throw const ProfileApiException(
+        'O servidor não retornou a URL do documento enviado.',
+      );
+    }
+
+    final normalizedType = switch (type.trim().toLowerCase()) {
+      'antecedentes_criminais' || 'criminal_record' => 'CRIMINAL_RECORD',
+      'comprovante_residencia' || 'residence_proof' => 'RESIDENCE_PROOF',
+      _ => type.trim().toUpperCase(),
+    };
+    final fileName = Uri.file(filePath).pathSegments.last;
+    final documentResponse = await _baseApi.client.post(
+      Uri.parse('${_baseApi.baseUrl}v2/driver/driver-documents'),
+      headers: await _baseApi.getHeaders(),
+      body: jsonEncode(<String, dynamic>{
+        'user': userId,
+        'type': normalizedType,
+        'fileUrl': fileUrl,
+        'filename': fileName,
+      }),
+    );
+    _parsePayload(
+      documentResponse,
+      fallbackError: 'Falha ao registrar o documento enviado.',
+    );
   }
 
   Future<void> uploadCnhDocuments({
@@ -402,9 +457,27 @@ class ProfileApi {
       'POST',
       Uri.parse('${_baseApi.baseUrl}v2/driver/onboarding/documents'),
     );
-    request.files.add(await MultipartFile.fromPath('cnhFront', cnhFront.path));
-    request.files.add(await MultipartFile.fromPath('cnhBack', cnhBack.path));
-    request.files.add(await MultipartFile.fromPath('selfie', selfie.path));
+    request.files.add(
+      await MultipartFile.fromPath(
+        'cnhFront',
+        cnhFront.path,
+        contentType: _contentTypeFor(cnhFront.path),
+      ),
+    );
+    request.files.add(
+      await MultipartFile.fromPath(
+        'cnhBack',
+        cnhBack.path,
+        contentType: _contentTypeFor(cnhBack.path),
+      ),
+    );
+    request.files.add(
+      await MultipartFile.fromPath(
+        'selfie',
+        selfie.path,
+        contentType: _contentTypeFor(selfie.path),
+      ),
+    );
 
     final headers = await _baseApi.getHeaders();
     headers.remove('Content-Type');
@@ -458,10 +531,15 @@ class ProfileApi {
 
   String _extractErrorMessage(Map<String, dynamic> body, String fallback) {
     final message = body['message'];
+    final error = body['error'];
     if (message is String && message.trim().isNotEmpty) {
+      if (error is String &&
+          error.trim().isNotEmpty &&
+          error.trim() != message.trim()) {
+        return '${message.trim()}: ${error.trim()}';
+      }
       return message.trim();
     }
-    final error = body['error'];
     if (error is String && error.trim().isNotEmpty) {
       return error.trim();
     }
