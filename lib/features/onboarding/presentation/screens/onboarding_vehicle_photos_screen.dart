@@ -368,8 +368,15 @@ class _OnboardingVehiclePhotosScreenState
       maxHeight: 1920,
     );
     if (image == null) return;
+    final file = File(image.path);
+    if (await file.length() > 5 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cada foto deve ter no máximo 5 MB.')),
+      );
+      return;
+    }
     setState(() {
-      final file = File(image.path);
       switch (step) {
         case _VehiclePhotoStep.front:
           _front = file;

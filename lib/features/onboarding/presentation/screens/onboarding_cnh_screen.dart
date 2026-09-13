@@ -83,7 +83,7 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: const LinearProgressIndicator(
-                    value: 4 / 5,
+                    value: 4 / 7,
                     minHeight: 6,
                     backgroundColor: Color(0xFF27272A),
                     valueColor: AlwaysStoppedAnimation<Color>(
@@ -273,8 +273,15 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
               maxHeight: 1920,
             );
     if (picked == null) return;
+    final file = File(picked.path);
+    if (await file.length() > 5 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cada arquivo deve ter no máximo 5 MB.')),
+      );
+      return;
+    }
     setState(() {
-      final file = File(picked.path);
       switch (kind) {
         case 'front':
           _front = file;

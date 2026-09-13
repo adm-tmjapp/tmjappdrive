@@ -279,7 +279,15 @@ class _OnboardingCriminalRecordScreenState
     );
     final path = result?.files.single.path;
     if (path == null) return;
-    setState(() => _selectedFile = File(path));
+    final file = File(path);
+    if (await file.length() > 10 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('O arquivo deve ter no máximo 10 MB.')),
+      );
+      return;
+    }
+    setState(() => _selectedFile = file);
   }
 
   Future<void> _pickImage() async {
@@ -291,7 +299,15 @@ class _OnboardingCriminalRecordScreenState
       maxHeight: 1920,
     );
     if (image == null) return;
-    setState(() => _selectedFile = File(image.path));
+    final file = File(image.path);
+    if (await file.length() > 5 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A foto deve ter no máximo 5 MB.')),
+      );
+      return;
+    }
+    setState(() => _selectedFile = file);
   }
 }
 

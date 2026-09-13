@@ -148,11 +148,21 @@ class _OnboardingProfilePhotoScreenState
     final picked = await _picker.pickImage(
       source: source,
       imageQuality: 70,
-      maxWidth: 1080,
-      maxHeight: 1920,
+      // Profile avatars do not need the camera's full resolution. Keeping the
+      // longest side at 500px significantly reduces memory and upload size.
+      maxWidth: 500,
+      maxHeight: 500,
     );
     if (picked == null) return;
-    setState(() => _selectedFile = File(picked.path));
+    final file = File(picked.path);
+    if (await file.length() > 1 * 1024 * 1024) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('A foto deve ter no máximo 1 MB.')),
+      );
+      return;
+    }
+    setState(() => _selectedFile = file);
   }
 }
 

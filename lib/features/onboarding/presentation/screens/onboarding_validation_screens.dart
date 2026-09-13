@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,8 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
-// Mantenha os imports do seu projeto
-import '../widgets/onboarding_ui.dart';
 
 // Cores do layout (Substitua as do onboarding_ui.dart caso prefira estas)
 const Color _onboardingBg = Color(0xFF000000);
@@ -36,6 +36,23 @@ class _OnboardingEmailValidationScreenState
   void initState() {
     super.initState();
     _codeController.addListener(_syncCodeState);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sendEmailCodeOnEnter();
+    });
+  }
+
+  Future<void> _sendEmailCodeOnEnter() async {
+    if (!mounted) return;
+
+    final controller = ref.read(
+      driverOnboardingControllerProvider(widget.session).notifier,
+    );
+    final ok = await controller.sendEmailCode();
+
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _codeSent = true);
+    }
   }
 
   @override
@@ -115,6 +132,23 @@ class _OnboardingPhoneValidationScreenState
   void initState() {
     super.initState();
     _codeController.addListener(_syncCodeState);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _sendPhoneCodeOnEnter();
+    });
+  }
+
+  Future<void> _sendPhoneCodeOnEnter() async {
+    if (!mounted) return;
+
+    final controller = ref.read(
+      driverOnboardingControllerProvider(widget.session).notifier,
+    );
+    final ok = await controller.sendPhoneCode();
+
+    if (!mounted) return;
+    if (ok) {
+      setState(() => _codeSent = true);
+    }
   }
 
   @override
@@ -174,7 +208,7 @@ class _OnboardingPhoneValidationScreenState
 // ==============================================================
 // WIDGET DO LAYOUT PRINCIPAL (REAPROVEITADO PARA AS DUAS TELAS)
 // ==============================================================
-class _ValidationLayout extends StatelessWidget {
+class _ValidationLayout extends StatefulWidget {
   const _ValidationLayout({
     required this.title,
     required this.headline,
@@ -202,8 +236,54 @@ class _ValidationLayout extends StatelessWidget {
   final String? error;
   final bool codeSent;
   final bool codeReady;
-  final VoidCallback onSendCode;
-  final VoidCallback onSubmit;
+  final Future<void> Function() onSendCode;
+  final Future<void> Function() onSubmit;
+
+  @override
+  State<_ValidationLayout> createState() => _ValidationLayoutState();
+}
+
+class _ValidationLayoutState extends State<_ValidationLayout> {
+  Timer? _resendTimer;
+  int _resendSeconds = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.codeSent) _startResendCooldown();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ValidationLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.codeSent && widget.codeSent) _startResendCooldown();
+  }
+
+  @override
+  void dispose() {
+    _resendTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startResendCooldown() {
+    _resendTimer?.cancel();
+    setState(() => _resendSeconds = 60);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return timer.cancel();
+      if (_resendSeconds <= 1) {
+        timer.cancel();
+        setState(() => _resendSeconds = 0);
+      } else {
+        setState(() => _resendSeconds--);
+      }
+    });
+  }
+
+  Future<void> _resendCode() async {
+    if (_resendSeconds > 0 || widget.isLoading) return;
+    _startResendCooldown();
+    await widget.onSendCode();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -218,7 +298,7 @@ class _ValidationLayout extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
         ),
         title: Text(
-          title,
+          widget.title,
           style: GoogleFonts.inter(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -235,7 +315,7 @@ class _ValidationLayout extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      stepLabel,
+                      widget.stepLabel,
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -243,7 +323,7 @@ class _ValidationLayout extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '$currentStep de $totalSteps',
+                      '${widget.currentStep} de ${widget.totalSteps}',
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -256,7 +336,7 @@ class _ValidationLayout extends StatelessWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: currentStep / totalSteps,
+                    value: widget.currentStep / widget.totalSteps,
                     minHeight: 6,
                     backgroundColor: const Color(0xFF27272A),
                     valueColor: const AlwaysStoppedAnimation<Color>(
@@ -279,7 +359,7 @@ class _ValidationLayout extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      headline,
+                      widget.headline,
                       style: GoogleFonts.inter(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
@@ -289,7 +369,7 @@ class _ValidationLayout extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      description,
+                      widget.description,
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w400,
@@ -299,64 +379,102 @@ class _ValidationLayout extends StatelessWidget {
                     ),
                     const SizedBox(height: 48),
 
-                    // ==========================================
-                    // LAYOUT ESTÁTICO DO CÓDIGO (Como solicitado)
-                    // ==========================================
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: List.generate(6, (index) {
-                        return Container(
-                          width: 45,
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: widget.codeController,
+                      builder: (context, value, _) {
+                        final code = value.text;
+                        return SizedBox(
                           height: 50,
-                          decoration: const BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: Color(0xFF334155),
-                                width: 2,
+                          child: Stack(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: List.generate(6, (index) {
+                                  final digit =
+                                      index < code.length ? code[index] : '';
+                                  return Container(
+                                    width: 45,
+                                    height: 50,
+                                    decoration: const BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Color(0xFF334155),
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        digit,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 24,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
                               ),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '0',
-                              style: GoogleFonts.inter(
-                                fontSize: 24,
-                                color: Colors.white.withValues(alpha: 0.3),
-                                fontWeight: FontWeight.w600,
+                              Positioned.fill(
+                                child: TextField(
+                                  controller: widget.codeController,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  maxLength: 6,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.transparent,
+                                    fontSize: 1,
+                                  ),
+                                  cursorColor: Colors.transparent,
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    counterText: '',
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         );
-                      }),
+                      },
                     ),
 
                     // ==========================================
                     const SizedBox(height: 32),
                     Center(
-                      child: Text.rich(
-                        TextSpan(
-                          text: 'Reenviar código em ',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            color: _onboardingSubtitle,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: '01:00',
-                              style: GoogleFonts.inter(
-                                color: _onboardingPrimary,
-                                fontWeight: FontWeight.w600,
+                      child:
+                          _resendSeconds > 0
+                              ? Text(
+                                'Reenviar código em 00:${_resendSeconds.toString().padLeft(2, '0')}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: _onboardingSubtitle,
+                                ),
+                              )
+                              : TextButton(
+                                onPressed:
+                                    widget.isLoading ? null : _resendCode,
+                                child: Text(
+                                  widget.codeSent
+                                      ? 'Reenviar código agora'
+                                      : 'Enviar código',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    color: _onboardingPrimary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
-                    if (error != null) ...[
+                    if (widget.error != null) ...[
                       const SizedBox(height: 24),
                       Center(
                         child: Text(
-                          error!,
+                          widget.error!,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             color: Colors.redAccent,
@@ -375,7 +493,10 @@ class _ValidationLayout extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: isLoading || !codeReady ? null : onSubmit,
+                  onPressed:
+                      widget.isLoading || !widget.codeReady
+                          ? null
+                          : widget.onSubmit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _onboardingPrimary,
                     disabledBackgroundColor: _onboardingPrimary.withValues(
@@ -387,7 +508,7 @@ class _ValidationLayout extends StatelessWidget {
                     ),
                   ),
                   child:
-                      isLoading
+                      widget.isLoading
                           ? const SizedBox(
                             width: 24,
                             height: 24,
