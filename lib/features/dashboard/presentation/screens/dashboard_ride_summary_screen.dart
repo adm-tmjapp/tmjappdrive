@@ -267,7 +267,9 @@ class _DashboardRideSummaryScreenState
                                 hintText:
                                     'Conte como foi o comportamento do passageiro...',
                                 hintStyle: TextStyle(
-                                  color: AppTheme.textMuted.withOpacity(0.5),
+                                  color: AppTheme.textMuted.withValues(
+                                    alpha: 0.5,
+                                  ),
                                   fontSize: 16,
                                 ),
                                 filled: true,
@@ -276,13 +278,13 @@ class _DashboardRideSummaryScreenState
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: Colors.white.withValues(alpha: 0.05),
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: Colors.white.withValues(alpha: 0.05),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -505,7 +507,7 @@ class _CompletedHeader extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppTheme.primary.withOpacity(0.15),
+              color: AppTheme.primary.withValues(alpha: 0.15),
               width: 4,
             ),
           ),
@@ -514,7 +516,7 @@ class _CompletedHeader extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppTheme.primary.withOpacity(0.3),
+                color: AppTheme.primary.withValues(alpha: 0.3),
                 width: 2,
               ),
             ),
@@ -716,13 +718,11 @@ class _PrimaryActionButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
-    this.isLoading = false,
   });
 
   final String label;
   final VoidCallback onPressed;
   final IconData? icon;
-  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -730,7 +730,7 @@ class _PrimaryActionButton extends StatelessWidget {
       height: 56,
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.primary,
           foregroundColor: AppTheme.textLight,
@@ -739,36 +739,26 @@ class _PrimaryActionButton extends StatelessWidget {
           ),
           elevation: 0,
         ),
-        child:
-            isLoading
-                ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    if (icon != null) ...[
-                      const SizedBox(width: 8),
-                      Icon(icon, size: 20),
-                    ],
-                  ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                 ),
+              ),
+            ),
+            if (icon != null) ...[
+              const SizedBox(width: 8),
+              Icon(icon, size: 20),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -906,7 +896,7 @@ class _MapPlaceholderPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Colors.white.withOpacity(0.4)
+          ..color = Colors.white.withValues(alpha: 0.4)
           ..strokeWidth = 2.0
           ..style = PaintingStyle.stroke;
 
@@ -925,7 +915,7 @@ class _MapPlaceholderPainter extends CustomPainter {
     // Desenha avenidas mais grossas
     final thickPaint =
         Paint()
-          ..color = Colors.white.withOpacity(0.6)
+          ..color = Colors.white.withValues(alpha: 0.6)
           ..strokeWidth = 4.0
           ..style = PaintingStyle.stroke;
 

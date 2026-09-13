@@ -340,8 +340,8 @@ class _ProfileHeader extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: _ProfileFeatureScreenState._primary.withOpacity(
-                          0.35,
+                        color: _ProfileFeatureScreenState._primary.withValues(
+                          alpha: 0.35,
                         ),
                         blurRadius: 10,
                         offset: const Offset(0, 6),
@@ -435,7 +435,7 @@ class _MetricCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFF1E3A5F)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.28),
+            color: Colors.black.withValues(alpha: 0.28),
             blurRadius: 12,
             offset: const Offset(0, 10),
           ),
@@ -525,7 +525,7 @@ class _VehicleCard extends StatelessWidget {
               border: Border.all(color: const Color(0xFF1E3A5F), width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.30),
+                  color: Colors.black.withValues(alpha: 0.30),
                   blurRadius: 12,
                   offset: const Offset(0, 10),
                 ),

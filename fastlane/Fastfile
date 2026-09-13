@@ -1,0 +1,36 @@
+default_platform(:android)
+
+platform :android do
+  desc "Gera o AAB assinado e publica no teste interno do Google Play"
+  lane :internal do
+    package_name = ENV.fetch("PLAY_PACKAGE_NAME", "br.com.tmjapp.tmjapp.drive.tmjappdrive")
+    version_name = ENV.fetch("VERSION_NAME", "1.0.2")
+    # O código 1 já foi publicado; mantenha incremento para permitir novas versões.
+    version_code = ENV.fetch("VERSION_CODE", "6")
+    aab_path = "build/app/outputs/bundle/release/app-release.aab"
+    json_key_data = ENV.fetch("PLAY_JSON_KEY_DATA")
+
+    sh("flutter", "pub", "get")
+    sh(
+      "flutter", "build", "appbundle", "--release",
+      "--build-name=#{version_name}",
+      "--build-number=#{version_code}",
+      "--dart-define=APP_ENV=prod",
+      "--dart-define=API_BASE_URL=https://api.tmjapp.com.br/api/"
+    )
+
+    UI.user_error!("AAB não encontrado em #{aab_path}") unless File.exist?(aab_path)
+
+    upload_to_play_store(
+      package_name: package_name,
+      aab: aab_path,
+      track: "internal",
+      release_status: "completed",
+      json_key_data: json_key_data,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      validate_only: ENV.fetch("PLAY_VALIDATE_ONLY", "false") == "true"
+    )
+  end
+end

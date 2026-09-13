@@ -31,7 +31,6 @@ class OnboardingStatus {
   });
 
   factory OnboardingStatus.fromJson(Map<String, dynamic> json) {
-    print(json.toString());
     return OnboardingStatus(
       isCompleted: json["isCompleted"],
       isUnderReview: json["isUnderReview"],
@@ -68,7 +67,6 @@ class Steps {
   });
 
   factory Steps.fromJson(Map<String, dynamic> json) {
-    print(json);
     return Steps(
       profilePhoto:
           json["profilePhoto"] != null

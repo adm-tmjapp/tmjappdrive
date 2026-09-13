@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tmjappdrive/class/url_launcher.dart';
 
+import '../../../ride_history/application/ride_history_providers.dart';
 import '../../domain/profile_models.dart';
 
-class ProfileSecurityScreen extends StatelessWidget {
+class ProfileSecurityScreen extends ConsumerWidget {
   const ProfileSecurityScreen({super.key, required this.security});
 
   final DriverProfileSecurity security;
@@ -14,7 +16,33 @@ class ProfileSecurityScreen extends StatelessWidget {
   static const Color _primary = Color(0xFFD62D86);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> openSupport() async {
+      try {
+        final contact =
+            await ref.read(rideHistoryRepositoryProvider).getSupportContact();
+        final target =
+            contact.chatUrl?.trim().isNotEmpty == true
+                ? contact.chatUrl!
+                : contact.whatsApp?.trim().isNotEmpty == true
+                ? 'https://wa.me/${contact.whatsApp!.replaceAll(RegExp(r'\D'), '')}'
+                : contact.phone?.trim().isNotEmpty == true
+                ? 'tel:${contact.phone}'
+                : null;
+        if (target == null) {
+          throw Exception('Canal de suporte indisponível.');
+        }
+        await UrlLauncher.url(target);
+      } catch (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    }
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -69,7 +97,7 @@ class ProfileSecurityScreen extends StatelessWidget {
             onTap: () => UrlLauncher.url(security.termsUrl),
           ),
           const SizedBox(height: 26),
-          _SupportCard(),
+          _SupportCard(onTap: openSupport),
           const SizedBox(height: 22),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -119,25 +147,25 @@ class _ActionCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: ProfileSecurityScreen._panel,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF1E3A5F)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.28),
-                  blurRadius: 12,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+        decoration: BoxDecoration(
+          color: ProfileSecurityScreen._panel,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF1E3A5F)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.28),
+              blurRadius: 12,
+              offset: const Offset(0, 10),
             ),
+          ],
+        ),
         child: Row(
           children: [
             Container(
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: ProfileSecurityScreen._primary.withOpacity(0.16),
+                color: ProfileSecurityScreen._primary.withValues(alpha: 0.16),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: ProfileSecurityScreen._primary),
@@ -196,6 +224,10 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _SupportCard extends StatelessWidget {
+  const _SupportCard({required this.onTap});
+
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -210,7 +242,7 @@ class _SupportCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFF36162D)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 14,
             offset: const Offset(0, 10),
           ),
@@ -224,7 +256,7 @@ class _SupportCard extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.headset_mic_rounded, color: Colors.white),
@@ -254,7 +286,7 @@ class _SupportCard extends StatelessWidget {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: onTap,
               style: ElevatedButton.styleFrom(
                 backgroundColor: ProfileSecurityScreen._primary,
                 foregroundColor: Colors.white,

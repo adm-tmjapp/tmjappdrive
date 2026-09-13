@@ -23,8 +23,6 @@ class _ProfileDocumentsScreenState
   static const Color _panel = Color(0xFF0A1328);
   static const Color _muted = Color(0xFF94A3B8);
   static const Color _primary = Color(0xFFD62D86);
-  static const Color _outline = Color(0xFF1E2E4A);
-
   static const List<_DocumentOption> _options = [
     _DocumentOption(
       label: 'Comprovante de Residência',
@@ -202,7 +200,9 @@ class _ProfileDocumentsScreenState
                                   borderRadius: BorderRadius.circular(22),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.35),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.35,
+                                      ),
                                       blurRadius: 22,
                                       offset: const Offset(0, 16),
                                     ),
@@ -534,7 +534,7 @@ class _StatusCard extends StatelessWidget {
           border: Border.all(color: const Color(0xFF1E3A5F)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 14,
               offset: const Offset(0, 12),
             ),
@@ -611,7 +611,7 @@ class _DropdownField extends StatelessWidget {
         border: Border.all(color: const Color(0xFF1F2F4E)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
+            color: Colors.black.withValues(alpha: 0.22),
             blurRadius: 16,
             offset: const Offset(0, 10),
           ),
@@ -664,7 +664,7 @@ class _ActionButton extends StatelessWidget {
           border: Border.all(color: const Color(0xFF1F2F4E)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 12,
               offset: const Offset(0, 10),
             ),

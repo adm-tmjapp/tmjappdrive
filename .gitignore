@@ -45,3 +45,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /android/app/.cxx/
+
+# Fastlane / Google Play credentials
+/fastlane/*.json
+/fastlane/*.p12
+/android/*-keystore*.jks
+
+# Local test credentials
+.env.test.local

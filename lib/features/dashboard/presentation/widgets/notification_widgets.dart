@@ -243,7 +243,9 @@ class NotificationCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryAccent.withOpacity(0.6),
+                            color: AppColors.primaryAccent.withValues(
+                              alpha: 0.6,
+                            ),
                             blurRadius: 6,
                             spreadRadius: 1,
                           ),

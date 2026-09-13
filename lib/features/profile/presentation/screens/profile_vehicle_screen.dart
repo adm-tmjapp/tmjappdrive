@@ -473,7 +473,7 @@ class _EmptyVehiclesCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFF1A3558)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 10),
           ),

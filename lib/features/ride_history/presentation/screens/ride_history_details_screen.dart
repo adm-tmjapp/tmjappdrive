@@ -23,8 +23,7 @@ class RideHistoryDetailsScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           children: [
             LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 340;
+              builder: (context, _) {
                 return Row(
                   children: [
                     IconButton(

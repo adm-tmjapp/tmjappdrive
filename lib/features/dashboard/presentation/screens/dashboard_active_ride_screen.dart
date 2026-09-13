@@ -315,9 +315,22 @@ class DashboardActiveRideScreen extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
-                _QuickActionChip(label: 'Já cheguei', onTap: () {}),
-                _QuickActionChip(label: 'Trânsito intenso', onTap: () {}),
-                _QuickActionChip(label: 'Onde você está?', onTap: () {}),
+                _QuickActionChip(
+                  label: 'Já cheguei',
+                  onTap: () => _showArrivalBottomSheet(context),
+                ),
+                _QuickActionChip(
+                  label: 'Trânsito intenso',
+                  onTap:
+                      () => _showMessage(
+                        context,
+                        'Avise o passageiro pelo botão de mensagem sobre o trânsito.',
+                      ),
+                ),
+                _QuickActionChip(
+                  label: 'Onde você está?',
+                  onTap: () => _openSms(context),
+                ),
               ],
             ),
             const SizedBox(height: 18),
@@ -992,11 +1005,6 @@ class _AcceptedRideNavigationScreenState
         ride.passengerRating != null
             ? ride.passengerRating!.toStringAsFixed(1)
             : '--';
-
-    final navButtonsBottomPadding = min(
-      100.0,
-      MediaQuery.of(context).size.height * 0.12,
-    );
 
     return Scaffold(
       backgroundColor: DashboardActiveRideScreen._bg,
@@ -2006,40 +2014,6 @@ class _NavFloatingButton extends StatelessWidget {
         ),
         child: Icon(icon, size: buttonSize * 0.53),
       ),
-    );
-  }
-}
-
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.selected = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        selected ? DashboardActiveRideScreen._primary : const Color(0xFF7C8AA5);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 32),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
-          ),
-        ),
-      ],
     );
   }
 }

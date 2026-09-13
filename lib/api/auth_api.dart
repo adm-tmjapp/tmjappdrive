@@ -19,7 +19,7 @@ class Authapi {
       Response response = await baseApi.post(
         Uri.parse("v2/auth/login"),
         headers:
-            new Map<String, String>()
+            <String, String>{}
               ..putIfAbsent('Content-Type', () => 'application/json')
               ..putIfAbsent('Accept', () => 'application/json'),
         body: bodyObj,
@@ -54,7 +54,7 @@ class Authapi {
       Response response = await baseApi.post(
         Uri.parse("users/auth-phone"),
         headers:
-            new Map<String, String>()
+            <String, String>{}
               ..putIfAbsent('Content-Type', () => 'application/json')
               ..putIfAbsent('Accept', () => 'application/json'),
         body: body,
@@ -94,7 +94,7 @@ class Authapi {
       Response response = await baseApi.post(
         Uri.parse("v2/auth/register"),
         headers:
-            new Map<String, String>()
+            <String, String>{}
               ..putIfAbsent('Content-Type', () => 'application/json')
               ..putIfAbsent('Accept', () => 'application/json'),
         body: body,
@@ -181,19 +181,10 @@ class Authapi {
 
   Future<ApiResponseModel<bool>> sendForgotPasswordEmail(String email) async {
     try {
-      // TENTATIVA DE CORREÇÃO:
-      // No seu Login você usa "identifier", talvez aqui seja o mesmo?
-      // Vamos tentar manter 'email' primeiro, mas com DEBUG ativado.
-
       var bodyObj = {"email": email};
-      // Se não funcionar com "email", troque a linha acima por:
-      // var bodyObj = {"identifier": email};
-
-      print("DEBUG REQUISIÇÃO: Enviando para auth/forgot-password");
-      print("DEBUG BODY: $bodyObj");
 
       Response response = await baseApi.post(
-        Uri.parse("auth/forgot-password"),
+        Uri.parse("v2/auth/forgot-password"),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -201,19 +192,12 @@ class Authapi {
         body: bodyObj,
       );
 
-      print("DEBUG STATUS CODE: ${response.statusCode}");
-      print(
-        "DEBUG RESPOSTA DO SERVIDOR: ${response.body}",
-      ); // <--- ISSO É O MAIS IMPORTANTE
-
       if (response.statusCode == 200) {
         return ApiResponseModel(response, true);
       } else {
-        // Retorna falso se não for 200
         return ApiResponseModel(response, false);
       }
     } catch (error, stackTrace) {
-      print("DEBUG ERRO API: $error");
       return ApiResponseModel.fromException(error, stackTrace, false);
     }
   }

@@ -30,8 +30,8 @@ class _OnboardingVehicleDataScreenState
   // mas para não quebrar a sua lógica (pois eles são enviados na API),
   // irei definir os controllers e usá-los nos bastidores.
   final _renavamController = TextEditingController();
-  String _vehicleType = 'Carro';
-  String _usage = 'Passageiros';
+  final String _vehicleType = 'Carro';
+  final String _usage = 'Passageiros';
 
   @override
   void dispose() {

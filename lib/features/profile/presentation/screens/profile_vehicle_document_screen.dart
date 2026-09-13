@@ -151,16 +151,16 @@ class _ProfileVehicleDocumentScreenState
                       ),
                     ),
                   ],
-            const SizedBox(height: 30),
-            const Text(
-              'REQUISITOS PARA APROVACAO',
-              style: TextStyle(
-                color: _muted,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
-            ),
+                  const SizedBox(height: 30),
+                  const Text(
+                    'REQUISITOS PARA APROVACAO',
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                   const SizedBox(height: 18),
                   const _RequirementTile(
                     label: 'Documento original e atualizado',
@@ -417,7 +417,7 @@ class _DocumentPickerCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 14,
               offset: const Offset(0, 10),
             ),
@@ -565,20 +565,18 @@ class _DashedBorderPainter extends CustomPainter {
       Rect.fromLTWH(0, 0, size.width, size.height),
       Radius.circular(radius),
     );
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
 
     final path = Path()..addRRect(rrect);
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
         final next = distance + dash;
-        canvas.drawPath(
-          metric.extractPath(distance, next),
-          paint,
-        );
+        canvas.drawPath(metric.extractPath(distance, next), paint);
         distance = next + gap;
       }
     }

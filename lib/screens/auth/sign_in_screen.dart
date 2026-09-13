@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tmjappdrive/features/onboarding/presentation/screens/onboarding_flow_screen.dart';
 import 'package:tmjappdrive/screens/auth/sign_up_screen.dart';
@@ -27,11 +28,21 @@ class _SignInScreenState extends State<SignInScreen> {
   final _passwordController = TextEditingController();
 
   bool _showPassword = false;
+  String _appVersion = 'Versão carregando...';
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
+    setState(() {
+      _appVersion = 'Versão ${info.version} · código ${info.buildNumber}';
+    });
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -315,6 +326,18 @@ class _SignInScreenState extends State<SignInScreen> {
                                               },
                                       ),
                                     ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Center(
+                                child: Text(
+                                  _appVersion,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: _subtitleColor,
                                   ),
                                 ),
                               ),

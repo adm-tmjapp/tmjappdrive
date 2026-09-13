@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../class/url_launcher.dart';
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
+import '../../../ride_history/application/ride_history_providers.dart';
 import '../widgets/onboarding_ui.dart';
 
 class OnboardingPendingReviewScreen extends ConsumerWidget {
@@ -145,19 +147,34 @@ class OnboardingPendingReviewScreen extends ConsumerWidget {
               _ActionTile(
                 icon: Icons.security_outlined,
                 title: 'Dicas de segurança',
-                onTap: () {},
+                onTap:
+                    () => _showInfoDialog(
+                      context,
+                      'Dicas de segurança',
+                      'Nunca compartilhe sua senha, confirme os dados da corrida antes de iniciar e mantenha seus documentos atualizados.',
+                    ),
               ),
               const SizedBox(height: 12),
               _ActionTile(
                 icon: Icons.cleaning_services_outlined,
                 title: 'Kit de higiene',
-                onTap: () {},
+                onTap:
+                    () => _showInfoDialog(
+                      context,
+                      'Kit de higiene',
+                      'Mantenha o veículo limpo e disponibilize álcool em gel para oferecer uma experiência segura aos passageiros.',
+                    ),
               ),
               const SizedBox(height: 12),
               _ActionTile(
                 icon: Icons.play_circle_outline,
                 title: 'Vídeo de treinamento',
-                onTap: () {},
+                onTap:
+                    () => _showInfoDialog(
+                      context,
+                      'Vídeo de treinamento',
+                      'O conteúdo de treinamento será disponibilizado assim que sua análise for concluída.',
+                    ),
               ),
               const SizedBox(height: 32),
 
@@ -172,9 +189,7 @@ class OnboardingPendingReviewScreen extends ConsumerWidget {
                 width: double.infinity,
                 height: 56,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    // Adicione aqui a função para abrir o chat/WhatsApp do suporte
-                  },
+                  onPressed: () => _openSupport(context, ref),
                   icon: const Icon(
                     Icons.support_agent_outlined,
                     color: onboardingPrimary,
@@ -203,6 +218,54 @@ class OnboardingPendingReviewScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _openSupport(BuildContext context, WidgetRef ref) async {
+    try {
+      final contact =
+          await ref.read(rideHistoryRepositoryProvider).getSupportContact();
+      final target =
+          contact.chatUrl?.trim().isNotEmpty == true
+              ? contact.chatUrl!
+              : contact.whatsApp?.trim().isNotEmpty == true
+              ? 'https://wa.me/${contact.whatsApp!.replaceAll(RegExp(r'\D'), '')}'
+              : contact.phone?.trim().isNotEmpty == true
+              ? 'tel:${contact.phone}'
+              : null;
+      if (target == null) throw Exception('Canal de suporte indisponível.');
+      await UrlLauncher.url(target);
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  void _showInfoDialog(BuildContext context, String title, String message) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF1F1319),
+            title: Text(title, style: const TextStyle(color: Colors.white)),
+            content: Text(
+              message,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text(
+                  'Entendi',
+                  style: TextStyle(color: onboardingPrimary),
+                ),
+              ),
+            ],
+          ),
     );
   }
 }

@@ -1470,7 +1470,7 @@ class _BurgundyUploadCard extends StatelessWidget {
         width: double.infinity,
         height: 160,
         decoration: BoxDecoration(
-          color: const Color(0xFF2A0B18).withOpacity(0.5),
+          color: const Color(0xFF2A0B18).withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(AppTheme.radius),
           border: Border.all(color: AppTheme.strokeBurgundy, width: 1.5),
         ),

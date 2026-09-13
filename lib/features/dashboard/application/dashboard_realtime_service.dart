@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../data/dashboard_realtime_api.dart';
 import '../domain/dashboard_models.dart';
+import '../../../services/ride_alert_notification_service.dart';
 
 typedef NewRideRequestCallback = void Function(RideCardItem ride);
 
@@ -25,6 +25,7 @@ class DashboardRealtimeService {
   bool _isOnline = false;
   bool _isSendingLocation = false;
   DateTime? _lastRideAlertAt;
+  final Set<String> _alertedRideIds = <String>{};
   NewRideRequestCallback? _onNewRideRequest;
 
   Future<void> initialize({
@@ -181,7 +182,6 @@ class DashboardRealtimeService {
     final data = message.data;
     if (data['type'] != 'NEW_RIDE_REQUEST') return;
     debugPrint('[DashboardRealtimeService] NEW_RIDE_REQUEST data=$data');
-    unawaited(_playNewRideAlert());
     final pickup = _mapValue(data['pickup']);
     final dropoff = _mapValue(data['dropoff']);
 
@@ -216,19 +216,30 @@ class DashboardRealtimeService {
       expiresAt: _nullableDateTimeValue(data['expiresAt']),
     );
 
+    unawaited(_playNewRideAlert(ride));
     _onNewRideRequest?.call(ride);
   }
 
-  Future<void> _playNewRideAlert() async {
+  Future<void> _playNewRideAlert(RideCardItem ride) async {
+    if (ride.id.trim().isNotEmpty && _alertedRideIds.contains(ride.id)) {
+      return;
+    }
+
     final now = DateTime.now();
     if (_lastRideAlertAt != null &&
         now.difference(_lastRideAlertAt!) < const Duration(seconds: 3)) {
       return;
     }
     _lastRideAlertAt = now;
+    if (ride.id.trim().isNotEmpty) {
+      _alertedRideIds.add(ride.id);
+      if (_alertedRideIds.length > 100) {
+        _alertedRideIds.remove(_alertedRideIds.first);
+      }
+    }
 
     try {
-      await FlutterRingtonePlayer().playNotification(volume: 1);
+      await RideAlertNotificationService.showNewRide(ride);
     } catch (error, stackTrace) {
       debugPrint(
         '[DashboardRealtimeService] ride alert sound failed: $error\n$stackTrace',

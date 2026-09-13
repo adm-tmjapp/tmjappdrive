@@ -2,7 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:tmjappdrive/screens/splash_screen.dart';
+import 'package:tmjappdrive/services/ride_alert_notification_service.dart';
 import 'package:tmjappdrive/utils/colors.dart';
 
 @pragma('vm:entry-point')
@@ -14,10 +16,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
+    DeviceOrientation.portraitUp,
+  ]);
   try {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (_) {}
+  await RideAlertNotificationService.initialize();
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -28,7 +34,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TMJ Drive',
+      title: 'Motorista',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.

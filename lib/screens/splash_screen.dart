@@ -104,10 +104,9 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          child: const Icon(
-                            Icons.electric_car_rounded,
-                            color: Colors.white,
-                            size: 54,
+                          child: Image.asset(
+                            'assets/logo_5.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
@@ -120,13 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
                             letterSpacing: -2.0,
                             color: const Color(0xFFF8FAFC),
                           ),
-                          children: const [
-                            TextSpan(text: 'TMJ'),
-                            TextSpan(
-                              text: 'App',
-                              style: TextStyle(color: _accentColor),
-                            ),
-                          ],
+                          children: const [TextSpan(text: 'Motorista')],
                         ),
                       ),
                       const SizedBox(height: 10),

@@ -121,7 +121,7 @@ class _ProfilePersonalDataScreenState
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: _primary.withOpacity(0.35),
+                            color: _primary.withValues(alpha: 0.35),
                             blurRadius: 10,
                             offset: const Offset(0, 6),
                           ),
@@ -243,7 +243,7 @@ class _ProfilePersonalDataScreenState
                       border: Border.all(color: _border),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 10),
                         ),
@@ -264,7 +264,7 @@ class _ProfilePersonalDataScreenState
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: _primary.withOpacity(0.12),
+                            color: _primary.withValues(alpha: 0.12),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
