@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
+import '../../class/url_launcher.dart';
 import '../../repository/auth_repository.dart';
 import 'bloc/login_bloc.dart';
 import 'bloc/login_event.dart';
@@ -18,6 +19,9 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  static const _termsUrl = 'https://tmjapp.com.br/terms';
+  static const _privacyPolicyUrl = 'https://tmjapp.com.br/privacy';
+
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -307,7 +311,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                     recognizer:
                                         TapGestureRecognizer()
-                                          ..onTap = showTermsConditions,
+                                          ..onTap =
+                                              () => _openLegalDocument(
+                                                _termsUrl,
+                                                'Termos de Uso',
+                                              ),
                                   ),
                                   const TextSpan(text: ' e a '),
                                   TextSpan(
@@ -319,7 +327,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     ),
                                     recognizer:
                                         TapGestureRecognizer()
-                                          ..onTap = showTermsConditions,
+                                          ..onTap =
+                                              () => _openLegalDocument(
+                                                _privacyPolicyUrl,
+                                                'Política de Privacidade',
+                                              ),
                                   ),
                                   const TextSpan(text: '.'),
                                 ],
@@ -503,31 +515,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
-  void showTermsConditions() {
-    showDialog<void>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: const Color(0xFF101014),
-            title: const Text(
-              'Termos e Privacidade',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: const Text(
-              'Aqui entram os Termos de Uso e a Política de Privacidade.',
-              style: TextStyle(color: Color(0xFFADB6D0)),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Fechar',
-                  style: TextStyle(color: _accentColor),
-                ),
-              ),
-            ],
+  Future<void> _openLegalDocument(String url, String documentName) async {
+    try {
+      await UrlLauncher.url(url);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Não foi possível abrir $documentName. Tente novamente.',
           ),
-    );
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
 

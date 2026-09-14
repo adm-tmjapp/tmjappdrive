@@ -201,4 +201,28 @@ class Authapi {
       return ApiResponseModel.fromException(error, stackTrace, false);
     }
   }
+
+  Future<ApiResponseModel<bool>> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await baseApi.post(
+        Uri.parse('v2/auth/reset-password'),
+        headers: const {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: {'email': email, 'code': code, 'newPassword': newPassword},
+      );
+
+      return ApiResponseModel(
+        response,
+        response.statusCode >= 200 && response.statusCode < 300,
+      );
+    } catch (error, stackTrace) {
+      return ApiResponseModel.fromException(error, stackTrace, false);
+    }
+  }
 }

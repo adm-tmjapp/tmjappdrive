@@ -180,4 +180,40 @@ class AuthRepository {
       } catch (_) {}
     }
   }
+
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final apiResponse = await auth.resetPassword(
+      email: email,
+      code: code,
+      newPassword: newPassword,
+    );
+
+    if (apiResponse.hasException) {
+      throw Exception(
+        apiResponse.exceptionMessage ??
+            'Não foi possível conectar ao serviço de recuperação.',
+      );
+    }
+
+    if (!apiResponse.ok || apiResponse.result != true) {
+      var errorMessage = 'Código inválido ou expirado.';
+      final responseBody = apiResponse.response?.body;
+      if (responseBody != null && responseBody.isNotEmpty) {
+        try {
+          final body = jsonDecode(responseBody);
+          if (body is Map) {
+            final message = body['message'] ?? body['error'];
+            if (message is String && message.trim().isNotEmpty) {
+              errorMessage = message.trim();
+            }
+          }
+        } catch (_) {}
+      }
+      throw Exception(errorMessage);
+    }
+  }
 }

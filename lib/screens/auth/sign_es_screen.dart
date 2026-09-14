@@ -8,6 +8,7 @@ import '../../utils/strings.dart';
 import 'bloc/login_bloc.dart';
 import 'bloc/login_event.dart';
 import 'bloc/login_state.dart';
+import 'reset_password_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -43,36 +44,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       create: (_) => LoginBloc(authRepository: AuthRepository()),
       child: BlocConsumer<LoginBloc, LoginState>(
         listener: (context, state) {
-          if (state is LoginLoading) {
-            showDialog<void>(
-              context: context,
-              barrierDismissible: false,
-              builder: (_) => const Center(child: CircularProgressIndicator()),
-            );
-          } else if (state is ForgotPasswordSuccess) {
-            Navigator.of(context, rootNavigator: true).pop();
-            showDialog<void>(
-              context: context,
-              barrierDismissible: false,
-              builder:
-                  (dialogContext) => AlertDialog(
-                    title: const Text('Email enviado'),
-                    content: const Text(
-                      'Verifique sua caixa de entrada para redefinir sua senha.',
+          if (state is ForgotPasswordSuccess) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder:
+                    (_) => ResetPasswordScreen(
+                      email: _emailController.text.trim(),
                     ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop();
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  ),
+              ),
             );
           } else if (state is LoginFailure) {
-            Navigator.of(context, rootNavigator: true).maybePop();
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.error.replaceAll('Exception: ', '')),
