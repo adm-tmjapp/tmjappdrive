@@ -120,7 +120,7 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
 
       final newError = next.error;
       if (newError == null) return;
-      if (newError != 'Servico indisponivel') return;
+      if (newError != 'Serviço indisponível') return;
       if (_isShowingServiceAlert) return;
       if (newError == previous?.error) return;
 
@@ -130,7 +130,7 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
         builder: (dialogContext) {
           return AlertDialog(
             title: const Text('Aviso'),
-            content: const Text('Servico indisponivel'),
+            content: const Text('Serviço indisponível'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
@@ -153,7 +153,7 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
         .where((ride) => featuredRide == null || ride.id != featuredRide.id)
         .toList(growable: false);
     final isOnline = state.availability == DriverAvailability.online;
-    final hasServiceError = state.error == 'Servico indisponivel';
+    final hasServiceError = state.error == 'Serviço indisponível';
     final summary = state.snapshot?.summary;
     final showFeedbackCards =
         hasServiceError ||
@@ -1477,7 +1477,7 @@ class _NoRidesFeedbackCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             hasApiError
-                ? 'Servico indisponivel no momento. Verifique sua conexao e tente novamente.'
+                ? 'Serviço indisponível no momento. Verifique sua conexão e tente novamente.'
                 : 'Fique online para começar a receber solicitações.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 14),

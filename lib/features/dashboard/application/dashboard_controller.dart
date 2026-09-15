@@ -10,7 +10,7 @@ import 'dashboard_state.dart';
 import '../../../utils/strings.dart';
 
 class DashboardController extends StateNotifier<DashboardState> {
-  static const String serviceUnavailableMessage = 'Servico indisponivel';
+  static const String serviceUnavailableMessage = 'Serviço indisponível';
 
   DashboardController(this._repository, this._realtimeService)
     : super(DashboardState.initial()) {
