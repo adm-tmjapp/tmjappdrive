@@ -23,18 +23,24 @@ class DashboardFeatureScreen extends ConsumerStatefulWidget {
 class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
     with WidgetsBindingObserver {
   bool _isShowingServiceAlert = false;
+  bool _isShowingRideRequest = false;
   int _currentTabIndex = 0;
   String? _lastOpenedActiveRideId;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_currentTabIndex == 0) unawaited(_refreshDashboard());
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -47,6 +53,39 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
 
   Future<void> _refreshDashboard() async {
     await ref.read(dashboardControllerProvider.notifier).load();
+  }
+
+  void _showIncomingRideDialog(RideCardItem ride) {
+    _isShowingRideRequest = true;
+    final controller = ref.read(dashboardControllerProvider.notifier);
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        void closeAnd(void Function() action) {
+          Navigator.of(dialogContext).pop();
+          action();
+        }
+
+        return AlertDialog(
+          title: const Text('Nova corrida disponível'),
+          content: SingleChildScrollView(
+            child: _NewRequestCard(
+              ride: ride,
+              onAccept:
+                  () => closeAnd(() {
+                    unawaited(controller.acceptRide(ride.id));
+                  }),
+              onReject: () => closeAnd(() => controller.rejectRide(ride.id)),
+              onExpire: () => closeAnd(() => controller.rejectRide(ride.id)),
+            ),
+          ),
+        );
+      },
+    ).whenComplete(() {
+      _isShowingRideRequest = false;
+    });
   }
 
   Future<void> _openActiveRide(RideCardItem ride) async {
@@ -68,6 +107,17 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
   @override
   Widget build(BuildContext context) {
     ref.listen(dashboardControllerProvider, (previous, next) {
+      final incomingRide = next.liveRideRequest;
+      final previousRideId = previous?.liveRideRequest?.id;
+      if (incomingRide != null &&
+          incomingRide.id != previousRideId &&
+          !_isShowingRideRequest) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _isShowingRideRequest) return;
+          _showIncomingRideDialog(incomingRide);
+        });
+      }
+
       final newError = next.error;
       if (newError == null) return;
       if (newError != 'Servico indisponivel') return;
@@ -161,6 +211,19 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
                   const SizedBox(height: 16),
                   const Divider(color: Color(0xFF1E1E1E), height: 1),
                   const SizedBox(height: 16),
+                  if (state.lastUpdatedAt != null) ...[
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        'Atualizado às ${TimeOfDay.fromDateTime(state.lastUpdatedAt!).format(context)}',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   if (state.isLoading && state.snapshot == null)
                     const Center(
                       child: Padding(
@@ -183,7 +246,10 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
                         actionLabel: 'Ver tudo',
                       ),
                       const SizedBox(height: 12),
-                      _NoRidesFeedbackCard(hasApiError: hasServiceError),
+                      _NoRidesFeedbackCard(
+                        hasApiError: hasServiceError,
+                        onRetry: hasServiceError ? _refreshDashboard : null,
+                      ),
                       const SizedBox(height: 24),
                       if (!isOnline)
                         _GoOnlineButton(onTap: controller.toggleAvailability),
@@ -1365,9 +1431,10 @@ class _EarningsFeedbackCard extends StatelessWidget {
 }
 
 class _NoRidesFeedbackCard extends StatelessWidget {
-  const _NoRidesFeedbackCard({required this.hasApiError});
+  const _NoRidesFeedbackCard({required this.hasApiError, this.onRetry});
 
   final bool hasApiError;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -1415,6 +1482,18 @@ class _NoRidesFeedbackCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 14),
           ),
+          if (hasApiError && onRetry != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Tentar novamente'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFC62F78),
+                side: const BorderSide(color: Color(0x66C62F78)),
+              ),
+            ),
+          ],
         ],
       ),
     );

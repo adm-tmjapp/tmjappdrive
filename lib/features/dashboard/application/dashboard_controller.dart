@@ -59,6 +59,7 @@ class DashboardController extends StateNotifier<DashboardState> {
         isLoading: false,
         availability: snapshot.availability,
         snapshot: snapshot,
+        lastUpdatedAt: DateTime.now(),
         clearError: true,
       );
       await _realtimeService.updateOperationalState(
