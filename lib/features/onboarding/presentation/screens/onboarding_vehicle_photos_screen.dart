@@ -30,6 +30,12 @@ class _OnboardingVehiclePhotosScreenState
   _VehiclePhotoStep _currentStep = _VehiclePhotoStep.front;
 
   @override
+  void initState() {
+    super.initState();
+    _recoverLostImage();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(driverOnboardingControllerProvider(widget.session));
     final controller = ref.read(
@@ -361,14 +367,33 @@ class _OnboardingVehiclePhotosScreenState
   }
 
   Future<void> _pick(_VehiclePhotoStep step, ImageSource source) async {
-    final image = await _picker.pickImage(
-      source: source,
-      imageQuality: 70,
-      maxWidth: 1080,
-      maxHeight: 1920,
-    );
-    if (image == null) return;
-    final file = File(image.path);
+    try {
+      final image = await _picker.pickImage(
+        source: source,
+        imageQuality: 65,
+        maxWidth: 1280,
+        maxHeight: 1280,
+      );
+      if (image == null) return;
+      await _useImage(step, File(image.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _recoverLostImage() async {
+    try {
+      final response = await _picker.retrieveLostData();
+      final image = response.files?.firstOrNull;
+      if (image != null) {
+        await _useImage(_currentStep, File(image.path));
+      }
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _useImage(_VehiclePhotoStep step, File file) async {
     if (await file.length() > 5 * 1024 * 1024) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -376,6 +401,7 @@ class _OnboardingVehiclePhotosScreenState
       );
       return;
     }
+    if (!mounted) return;
     setState(() {
       switch (step) {
         case _VehiclePhotoStep.front:
@@ -395,6 +421,15 @@ class _OnboardingVehiclePhotosScreenState
           break;
       }
     });
+  }
+
+  void _showCameraError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Não foi possível recuperar a foto. Tente novamente.'),
+      ),
+    );
   }
 }
 

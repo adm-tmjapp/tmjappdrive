@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../class/url_launcher.dart';
+import '../../features/profile/presentation/screens/terms_of_use_screen.dart';
 import '../../repository/auth_repository.dart';
 import 'bloc/login_bloc.dart';
 import 'bloc/login_event.dart';
@@ -19,7 +20,6 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  static const _termsUrl = 'https://tmjapp.com.br/terms';
   static const _privacyPolicyUrl = 'https://tmjapp.com.br/privacy';
 
   final _formKey = GlobalKey<FormState>();
@@ -312,9 +312,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     recognizer:
                                         TapGestureRecognizer()
                                           ..onTap =
-                                              () => _openLegalDocument(
-                                                _termsUrl,
-                                                'Termos de Uso',
+                                              () => Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (_) =>
+                                                          const TermsOfUseScreen(),
+                                                ),
                                               ),
                                   ),
                                   const TextSpan(text: ' e a '),

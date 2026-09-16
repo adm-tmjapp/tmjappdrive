@@ -55,16 +55,24 @@ class OnbordingApi {
 
       if (response.statusCode == 200) {
         final decodedBody = jsonDecode(response.body);
-        if (decodedBody != null &&
-            decodedBody is Map<String, dynamic> &&
-            decodedBody["onboardingStatus"] is Map<String, dynamic>) {
-          OnboardingStatus onboardingStatus = OnboardingStatus.fromJson(
-            decodedBody["onboardingStatus"],
-          );
-          return ApiResponseModel(response, onboardingStatus);
-        } else {
-          return ApiResponseModel(response, null);
+        if (decodedBody is Map<String, dynamic>) {
+          final data = decodedBody['data'];
+          final payload =
+              decodedBody['onboardingStatus'] ??
+              decodedBody['onboarding_status'] ??
+              (data is Map
+                  ? data['onboardingStatus'] ??
+                      data['onboarding_status'] ??
+                      data
+                  : null);
+          if (payload is Map) {
+            return ApiResponseModel(
+              response,
+              OnboardingStatus.fromJson(Map<String, dynamic>.from(payload)),
+            );
+          }
         }
+        return ApiResponseModel(response, null);
       } else {
         return ApiResponseModel(response, null);
       }

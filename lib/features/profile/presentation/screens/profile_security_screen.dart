@@ -4,6 +4,7 @@ import 'package:tmjappdrive/class/url_launcher.dart';
 
 import '../../../ride_history/application/ride_history_providers.dart';
 import '../../domain/profile_models.dart';
+import 'terms_of_use_screen.dart';
 
 class ProfileSecurityScreen extends ConsumerWidget {
   const ProfileSecurityScreen({super.key, required this.security});
@@ -63,8 +64,12 @@ class ProfileSecurityScreen extends ConsumerWidget {
           _ActionCard(
             icon: Icons.description_rounded,
             title: 'Termos de Uso',
-            subtitle: security.termsUrl,
-            onTap: () => UrlLauncher.url(security.termsUrl),
+            subtitle: 'Consulte as regras de uso do TMJ Drive',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TermsOfUseScreen()),
+              );
+            },
           ),
           const SizedBox(height: 12),
           _ActionCard(

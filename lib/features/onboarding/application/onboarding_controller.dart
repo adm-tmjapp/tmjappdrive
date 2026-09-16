@@ -53,7 +53,19 @@ class DriverOnboardingState {
 
 class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
   DriverOnboardingController(this._repository, this._session)
-    : super(DriverOnboardingState.initial()) {
+    : super(
+        DriverOnboardingState(
+          isLoading: true,
+          isSubmitting: false,
+          snapshot:
+              _session.responseLogin.onboardingStatus == null
+                  ? null
+                  : DriverOnboardingSnapshot(
+                    onboardingStatus: _session.responseLogin.onboardingStatus,
+                    documents: null,
+                  ),
+        ),
+      ) {
     load();
   }
 
@@ -68,9 +80,10 @@ class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
     );
     try {
       final snapshot = await _repository.getSnapshot(_session.userId);
+      final hasUsableStatus = snapshot.onboardingStatus != null;
       state = state.copyWith(
         isLoading: false,
-        snapshot: snapshot,
+        snapshot: hasUsableStatus ? snapshot : state.snapshot,
         clearError: true,
       );
     } catch (e) {

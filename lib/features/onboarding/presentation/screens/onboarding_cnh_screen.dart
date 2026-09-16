@@ -25,6 +25,13 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
   File? _front;
   File? _back;
   File? _selfie;
+  String _pendingKind = 'front';
+
+  @override
+  void initState() {
+    super.initState();
+    _recoverLostImage();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -258,22 +265,32 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
   }
 
   Future<void> _pick(String kind, {bool cameraOnly = false}) async {
-    final picked =
-        cameraOnly
-            ? await _picker.pickImage(
-              source: ImageSource.camera,
-              imageQuality: 70, // Mantido o ajuste de memória
-              maxWidth: 1080,
-              maxHeight: 1920,
-            )
-            : await _picker.pickImage(
-              source: ImageSource.gallery,
-              imageQuality: 70, // Mantido o ajuste de memória
-              maxWidth: 1080,
-              maxHeight: 1920,
-            );
-    if (picked == null) return;
-    final file = File(picked.path);
+    _pendingKind = kind;
+    try {
+      final picked = await _picker.pickImage(
+        source: cameraOnly ? ImageSource.camera : ImageSource.gallery,
+        imageQuality: 65,
+        maxWidth: 1280,
+        maxHeight: 1280,
+      );
+      if (picked == null) return;
+      await _useImage(kind, File(picked.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _recoverLostImage() async {
+    try {
+      final response = await _picker.retrieveLostData();
+      final image = response.files?.firstOrNull;
+      if (image != null) await _useImage(_pendingKind, File(image.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _useImage(String kind, File file) async {
     if (await file.length() > 5 * 1024 * 1024) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -281,6 +298,7 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
       );
       return;
     }
+    if (!mounted) return;
     setState(() {
       switch (kind) {
         case 'front':
@@ -293,6 +311,15 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
           _selfie = file;
       }
     });
+  }
+
+  void _showCameraError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Não foi possível recuperar a foto. Tente novamente.'),
+      ),
+    );
   }
 }
 

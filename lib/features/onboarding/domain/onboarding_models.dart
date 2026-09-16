@@ -117,6 +117,14 @@ class DriverOnboardingSnapshot {
   bool get isCompleted => onboardingStatus?.isCompleted == true;
   bool get canDrive => onboardingStatus?.canDrive == true;
 
+  bool get hasSubmittedAllSteps {
+    final items = checklistItems;
+    return items.isNotEmpty && items.every((item) => !item.isPending);
+  }
+
+  bool get shouldShowPendingReview =>
+      !canDrive && isUnderReview && hasSubmittedAllSteps;
+
   double get progress {
     final items = checklistItems;
     if (items.isEmpty) return 0;

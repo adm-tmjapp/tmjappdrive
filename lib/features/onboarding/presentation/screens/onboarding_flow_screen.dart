@@ -15,16 +15,42 @@ import 'onboarding_validation_screens.dart';
 import 'onboarding_vehicle_data_screen.dart';
 import 'onboarding_vehicle_photos_screen.dart';
 
-class OnboardingFlowScreen extends ConsumerWidget {
+class OnboardingFlowScreen extends ConsumerStatefulWidget {
   const OnboardingFlowScreen({super.key, required this.responseLogin});
 
   final ResponseLogin responseLogin;
 
+  @override
+  ConsumerState<OnboardingFlowScreen> createState() =>
+      _OnboardingFlowScreenState();
+}
+
+class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
+    with WidgetsBindingObserver {
   DriverOnboardingSession get _session =>
-      DriverOnboardingSession(responseLogin: responseLogin);
+      DriverOnboardingSession(responseLogin: widget.responseLogin);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(driverOnboardingControllerProvider(_session).notifier).load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(driverOnboardingControllerProvider(_session));
     final snapshot = state.snapshot;
 
@@ -73,7 +99,7 @@ class OnboardingFlowScreen extends ConsumerWidget {
         ),
       );
     }
-    if (snapshot != null && snapshot.isUnderReview) {
+    if (snapshot != null && snapshot.shouldShowPendingReview) {
       return OnboardingPendingReviewScreen(session: _session);
     }
     return Scaffold(
@@ -180,7 +206,7 @@ class _ChecklistView extends ConsumerWidget {
               height: 56,
               child: ElevatedButton(
                 onPressed:
-                    items.any((item) => !item.isCompleted)
+                    snapshot?.hasSubmittedAllSteps != true
                         ? null
                         : () {
                           Navigator.of(context).push(

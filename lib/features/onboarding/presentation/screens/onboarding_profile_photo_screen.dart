@@ -23,6 +23,13 @@ class _OnboardingProfilePhotoScreenState
     extends ConsumerState<OnboardingProfilePhotoScreen> {
   final _picker = ImagePicker();
   File? _selectedFile;
+
+  @override
+  void initState() {
+    super.initState();
+    _recoverLostImage();
+  }
+
   static const int _stepNumber = 1;
   static const int _totalSteps = 7;
 
@@ -145,16 +152,31 @@ class _OnboardingProfilePhotoScreenState
   }
 
   Future<void> _pick(ImageSource source) async {
-    final picked = await _picker.pickImage(
-      source: source,
-      imageQuality: 70,
-      // Profile avatars do not need the camera's full resolution. Keeping the
-      // longest side at 500px significantly reduces memory and upload size.
-      maxWidth: 500,
-      maxHeight: 500,
-    );
-    if (picked == null) return;
-    final file = File(picked.path);
+    try {
+      final picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 500,
+        maxHeight: 500,
+      );
+      if (picked == null) return;
+      await _useImage(File(picked.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _recoverLostImage() async {
+    try {
+      final response = await _picker.retrieveLostData();
+      final image = response.files?.firstOrNull;
+      if (image != null) await _useImage(File(image.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _useImage(File file) async {
     if (await file.length() > 1 * 1024 * 1024) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -162,7 +184,17 @@ class _OnboardingProfilePhotoScreenState
       );
       return;
     }
+    if (!mounted) return;
     setState(() => _selectedFile = file);
+  }
+
+  void _showCameraError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Não foi possível recuperar a foto. Tente novamente.'),
+      ),
+    );
   }
 }
 

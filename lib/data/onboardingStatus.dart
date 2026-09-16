@@ -32,10 +32,13 @@ class OnboardingStatus {
 
   factory OnboardingStatus.fromJson(Map<String, dynamic> json) {
     return OnboardingStatus(
-      isCompleted: json["isCompleted"],
-      isUnderReview: json["isUnderReview"],
-      canDrive: json["canDrive"],
-      steps: json["steps"] != null ? Steps.fromJson(json["steps"]) : null,
+      isCompleted: _asBool(json["isCompleted"] ?? json["is_completed"]),
+      isUnderReview: _asBool(json["isUnderReview"] ?? json["is_under_review"]),
+      canDrive: _asBool(json["canDrive"] ?? json["can_drive"]),
+      steps:
+          json["steps"] is Map
+              ? Steps.fromJson(Map<String, dynamic>.from(json["steps"] as Map))
+              : null,
     );
   }
 
@@ -68,22 +71,12 @@ class Steps {
 
   factory Steps.fromJson(Map<String, dynamic> json) {
     return Steps(
-      profilePhoto:
-          json["profilePhoto"] != null
-              ? StepStatus.fromJson(json["profilePhoto"])
-              : null,
-      email: json["email"] != null ? StepStatus.fromJson(json["email"]) : null,
-      phone: json["phone"] != null ? StepStatus.fromJson(json["phone"]) : null,
-      documents:
-          json["documents"] != null
-              ? StepStatus.fromJson(json["documents"])
-              : null,
-      vehicle:
-          json["vehicle"] != null ? StepStatus.fromJson(json["vehicle"]) : null,
-      vehiclePhotos:
-          json["vehiclePhotos"] != null
-              ? StepStatus.fromJson(json["vehiclePhotos"])
-              : null,
+      profilePhoto: _step(json["profilePhoto"] ?? json["profile_photo"]),
+      email: _step(json["email"]),
+      phone: _step(json["phone"]),
+      documents: _step(json["documents"]),
+      vehicle: _step(json["vehicle"]),
+      vehiclePhotos: _step(json["vehiclePhotos"] ?? json["vehicle_photos"]),
     );
   }
 
@@ -107,8 +100,10 @@ class StepStatus {
 
   factory StepStatus.fromJson(Map<String, dynamic> json) {
     return StepStatus(
-      completed: json["completed"],
-      underReview: json["underReview"],
+      completed: _asBool(json["completed"] ?? json["isCompleted"]),
+      underReview: _asBool(
+        json["underReview"] ?? json["under_review"] ?? json["isUnderReview"],
+      ),
     );
   }
 
@@ -118,4 +113,38 @@ class StepStatus {
       if (underReview != null) "underReview": underReview,
     };
   }
+}
+
+StepStatus? _step(dynamic value) {
+  if (value is Map) {
+    return StepStatus.fromJson(Map<String, dynamic>.from(value));
+  }
+  if (value is bool || value is num || value is String) {
+    return StepStatus(completed: _asBool(value));
+  }
+  return null;
+}
+
+bool? _asBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    switch (value.trim().toLowerCase()) {
+      case 'true':
+      case '1':
+      case 'yes':
+      case 'sim':
+      case 'approved':
+      case 'completed':
+        return true;
+      case 'false':
+      case '0':
+      case 'no':
+      case 'nao':
+      case 'não':
+      case 'pending':
+        return false;
+    }
+  }
+  return null;
 }
