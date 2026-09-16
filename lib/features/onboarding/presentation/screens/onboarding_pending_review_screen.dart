@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,17 +10,64 @@ import '../../domain/onboarding_models.dart';
 import '../../../ride_history/application/ride_history_providers.dart';
 import '../widgets/onboarding_ui.dart';
 
-class OnboardingPendingReviewScreen extends ConsumerWidget {
+class OnboardingPendingReviewScreen extends ConsumerStatefulWidget {
   const OnboardingPendingReviewScreen({super.key, required this.session});
 
   final DriverOnboardingSession session;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(
-      driverOnboardingControllerProvider(session).notifier,
+  ConsumerState<OnboardingPendingReviewScreen> createState() =>
+      _OnboardingPendingReviewScreenState();
+}
+
+class _OnboardingPendingReviewScreenState
+    extends ConsumerState<OnboardingPendingReviewScreen>
+    with WidgetsBindingObserver {
+  Timer? _statusTimer;
+  bool _refreshInProgress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _statusTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _refreshStatus(),
     );
-    final state = ref.watch(driverOnboardingControllerProvider(session));
+  }
+
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshStatus();
+    }
+  }
+
+  Future<void> _refreshStatus() async {
+    if (!mounted || _refreshInProgress) return;
+    _refreshInProgress = true;
+    try {
+      await ref
+          .read(driverOnboardingControllerProvider(widget.session).notifier)
+          .load();
+    } finally {
+      _refreshInProgress = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ref.read(
+      driverOnboardingControllerProvider(widget.session).notifier,
+    );
+    final state = ref.watch(driverOnboardingControllerProvider(widget.session));
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000), // Fundo preto do Figma

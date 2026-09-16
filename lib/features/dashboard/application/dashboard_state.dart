@@ -11,6 +11,7 @@ class DashboardState {
   final String? driverProfileImage;
   final DashboardSnapshot? snapshot;
   final RideCardItem? liveRideRequest;
+  final DateTime? lastUpdatedAt;
 
   const DashboardState({
     required this.isLoading,
@@ -20,6 +21,7 @@ class DashboardState {
     this.driverProfileImage,
     this.snapshot,
     this.liveRideRequest,
+    this.lastUpdatedAt,
     this.error,
   });
 
@@ -44,6 +46,7 @@ class DashboardState {
     DashboardSnapshot? snapshot,
     RideCardItem? liveRideRequest,
     bool clearLiveRideRequest = false,
+    DateTime? lastUpdatedAt,
   }) {
     return DashboardState(
       isLoading: isLoading ?? this.isLoading,
@@ -60,6 +63,7 @@ class DashboardState {
           clearLiveRideRequest
               ? null
               : (liveRideRequest ?? this.liveRideRequest),
+      lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
     );
   }
 }
