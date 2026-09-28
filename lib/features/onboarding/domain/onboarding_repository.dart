@@ -16,12 +16,13 @@ abstract class DriverOnboardingRepository {
     required File selfie,
   });
   Future<void> uploadCriminalRecord(String userId, File file);
-  Future<void> registerVehicle(
+  Future<String> registerVehicle(
     String userId,
     DriverOnboardingVehicleInput input,
   );
   Future<void> uploadVehiclePhotos(
     String userId,
+    String? vehicleId,
     DriverOnboardingVehiclePhotosInput input,
   );
 }

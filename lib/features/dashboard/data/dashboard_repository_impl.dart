@@ -54,10 +54,8 @@ class DashboardRepositoryImpl implements DashboardRepository {
     final distance = _asNum(map['distanceKm']);
     final eta = _asInt(map['etaMin']);
 
-    final pickup =
-        map['pickup'] != null ? _mapFrom(map['pickup']) : <String, dynamic>{};
-    final dropoff =
-        map['dropoff'] != null ? _mapFrom(map['dropoff']) : <String, dynamic>{};
+    final pickup = _mapFrom(map['pickup'] ?? map['origin']);
+    final dropoff = _mapFrom(map['dropoff'] ?? map['destination']);
     final passenger =
         map['passenger'] != null
             ? _mapFrom(map['passenger'])
@@ -87,11 +85,11 @@ class DashboardRepositoryImpl implements DashboardRepository {
       isHighPriority: _asBool(map['highPriority']),
       isPassenger: category == 'passenger',
       pickupAddress: _asString(pickup['address']),
-      pickupLat: _asNullableDouble(pickup['lat']),
-      pickupLng: _asNullableDouble(pickup['lng']),
+      pickupLat: _coordinate(pickup, map, 'pickupLat', latitude: true),
+      pickupLng: _coordinate(pickup, map, 'pickupLng', latitude: false),
       dropoffAddress: _asString(dropoff['address']),
-      dropoffLat: _asNullableDouble(dropoff['lat']),
-      dropoffLng: _asNullableDouble(dropoff['lng']),
+      dropoffLat: _coordinate(dropoff, map, 'dropoffLat', latitude: true),
+      dropoffLng: _coordinate(dropoff, map, 'dropoffLng', latitude: false),
       distanceKm: distance.toDouble(),
       etaMin: eta,
       paymentMethodLabel: _paymentMethod(_asString(map['paymentMethod'])),
@@ -145,6 +143,44 @@ class DashboardRepositoryImpl implements DashboardRepository {
       return value.map((key, val) => MapEntry(key.toString(), val));
     }
     return <String, dynamic>{};
+  }
+
+  double? _coordinate(
+    Map<String, dynamic> point,
+    Map<String, dynamic> ride,
+    String topLevelKey, {
+    required bool latitude,
+  }) {
+    final key = latitude ? 'lat' : 'lng';
+    final longKey = latitude ? 'latitude' : 'longitude';
+    final shortLongKey = latitude ? 'y' : 'lon';
+    final location = _mapFrom(point['location']);
+    final coordinates = point['coordinates'];
+    final coordinateMap = _mapFrom(coordinates);
+    final alternateTopLevelKey = topLevelKey
+        .replaceFirst('Lat', 'Latitude')
+        .replaceFirst('Lng', 'Longitude');
+    final routeTopLevelPrefix =
+        topLevelKey.startsWith('pickup') ? 'origin' : 'destination';
+    final routeTopLevelKey = '$routeTopLevelPrefix${latitude ? 'Lat' : 'Lng'}';
+    final routeTopLevelLongKey =
+        '$routeTopLevelPrefix${latitude ? 'Latitude' : 'Longitude'}';
+    final raw =
+        point[key] ??
+        point[longKey] ??
+        point[shortLongKey] ??
+        location[key] ??
+        location[longKey] ??
+        coordinateMap[key] ??
+        coordinateMap[longKey] ??
+        ride[topLevelKey] ??
+        ride[alternateTopLevelKey] ??
+        ride[routeTopLevelKey] ??
+        ride[routeTopLevelLongKey] ??
+        (coordinates is List && coordinates.length > (latitude ? 1 : 0)
+            ? coordinates[latitude ? 1 : 0]
+            : null);
+    return _asNullableDouble(raw);
   }
 
   String _asString(dynamic value) {

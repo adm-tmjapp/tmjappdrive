@@ -60,7 +60,7 @@ class DriverOnboardingRepositoryImpl implements DriverOnboardingRepository {
   }
 
   @override
-  Future<void> registerVehicle(
+  Future<String> registerVehicle(
     String userId,
     DriverOnboardingVehicleInput input,
   ) {
@@ -70,8 +70,9 @@ class DriverOnboardingRepositoryImpl implements DriverOnboardingRepository {
   @override
   Future<void> uploadVehiclePhotos(
     String userId,
+    String? vehicleId,
     DriverOnboardingVehiclePhotosInput input,
   ) {
-    return _api.uploadVehiclePhotos(userId, input);
+    return _api.uploadVehiclePhotos(userId, vehicleId, input);
   }
 }

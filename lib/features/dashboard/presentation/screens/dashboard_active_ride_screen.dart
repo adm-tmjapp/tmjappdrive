@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/dashboard_api.dart';
+import '../../data/directions_route_service.dart';
 import '../../domain/dashboard_models.dart';
 import 'dashboard_ride_summary_screen.dart';
 import 'package:tmjappdrive/features/dashboard/presentation/widgets/notification_widgets.dart';
@@ -836,7 +837,9 @@ class _AcceptedRideNavigationScreen extends StatefulWidget {
 class _AcceptedRideNavigationScreenState
     extends State<_AcceptedRideNavigationScreen> {
   final Completer<GoogleMapController> _mapController = Completer();
+  final _directions = DirectionsRouteService();
   LatLng? _driverPosition;
+  List<LatLng> _roadRoute = const [];
 
   RideCardItem get ride => widget.ride;
 
@@ -867,6 +870,16 @@ class _AcceptedRideNavigationScreenState
       setState(() {
         _driverPosition = LatLng(position.latitude, position.longitude);
       });
+      final pickup = _pickupPoint;
+      if (pickup != null) {
+        final route = await _directions.getRoute(
+          origin: _driverPosition!,
+          destination: pickup,
+        );
+        if (mounted && route.length > 1) {
+          setState(() => _roadRoute = route);
+        }
+      }
       await _fitRouteBounds();
     } catch (_) {}
   }
@@ -928,7 +941,10 @@ class _AcceptedRideNavigationScreenState
     return {
       Polyline(
         polylineId: const PolylineId('driver_to_pickup'),
-        points: [_driverPosition!, _pickupPoint!],
+        points:
+            _roadRoute.length > 1
+                ? _roadRoute
+                : [_driverPosition!, _pickupPoint!],
         width: 6,
         color: DashboardActiveRideScreen._primary,
         startCap: Cap.roundCap,
@@ -971,6 +987,15 @@ class _AcceptedRideNavigationScreenState
       await controller.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(target: _pickupPoint!, zoom: 15.8),
+        ),
+      );
+      return;
+    }
+
+    if (_driverPosition != null) {
+      await controller.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: _driverPosition!, zoom: 15.0),
         ),
       );
     }
@@ -1359,8 +1384,10 @@ class _OngoingRideNavigationScreen extends StatefulWidget {
 class _OngoingRideNavigationScreenState
     extends State<_OngoingRideNavigationScreen> {
   final Completer<GoogleMapController> _mapController = Completer();
+  final _directions = DirectionsRouteService();
   StreamSubscription<Position>? _positionSubscription;
   LatLng? _driverPosition;
+  List<LatLng> _roadRoute = const [];
 
   RideCardItem get ride => widget.ride;
 
@@ -1394,7 +1421,25 @@ class _OngoingRideNavigationScreenState
   @override
   void initState() {
     super.initState();
+    unawaited(_loadRideRoute());
     unawaited(_startLiveLocation());
+  }
+
+  Future<void> _loadRideRoute() async {
+    final origin = _pickupPoint;
+    final destination = _dropoffPoint;
+    if (origin == null || destination == null) return;
+    try {
+      final route = await _directions.getRoute(
+        origin: origin,
+        destination: destination,
+      );
+      if (!mounted || route.length < 2) return;
+      setState(() => _roadRoute = route);
+      await _fitActiveBounds();
+    } catch (_) {
+      // Keep the endpoint fallback visible if Directions is unavailable.
+    }
   }
 
   @override
@@ -1490,7 +1535,10 @@ class _OngoingRideNavigationScreenState
       polylines.add(
         Polyline(
           polylineId: const PolylineId('ride_route'),
-          points: [_pickupPoint!, _dropoffPoint!],
+          points:
+              _roadRoute.length > 1
+                  ? _roadRoute
+                  : [_pickupPoint!, _dropoffPoint!],
           width: 6,
           color: DashboardActiveRideScreen._primary,
           startCap: Cap.roundCap,

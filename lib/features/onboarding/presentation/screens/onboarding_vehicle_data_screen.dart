@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
@@ -25,6 +27,11 @@ class _OnboardingVehicleDataScreenState
   final _yearController = TextEditingController();
   final _plateController = TextEditingController();
   final _colorController = TextEditingController();
+  final _plateFormatter = MaskTextInputFormatter(
+    mask: 'AAA-####',
+    filter: {'A': RegExp(r'[A-Za-z]'), '#': RegExp(r'[0-9A-Za-z]')},
+    type: MaskAutoCompletionType.lazy,
+  );
 
   // O Figma não mostra os campos de Renavam, Uso e Tipo de veículo,
   // mas para não quebrar a sua lógica (pois eles são enviados na API),
@@ -153,7 +160,9 @@ class _OnboardingVehicleDataScreenState
                             label: 'Placa',
                             hint: 'ABC-1234',
                             controller: _plateController,
-                            validator: _required,
+                            inputFormatters: [_plateFormatter],
+                            textCapitalization: TextCapitalization.characters,
+                            validator: _validatePlate,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -210,14 +219,17 @@ class _OnboardingVehicleDataScreenState
                                     ? parts.sublist(1).join(' ')
                                     : '';
 
-                            final ok = await controller.registerVehicle(
+                            final vehicleId = await controller.registerVehicle(
                               DriverOnboardingVehicleInput(
                                 brand: brand,
                                 model: model,
                                 year: _yearController.text.trim(),
                                 color: _colorController.text.trim(),
                                 plate:
-                                    _plateController.text.trim().toUpperCase(),
+                                    _plateController.text
+                                        .replaceAll('-', '')
+                                        .trim()
+                                        .toUpperCase(),
                                 vehicleType:
                                     _vehicleType, // Usando a variavel de estado
                                 usage: _usage, // Usando a variavel de estado
@@ -228,12 +240,13 @@ class _OnboardingVehicleDataScreenState
                               ),
                             );
                             if (!context.mounted) return;
-                            if (ok) {
+                            if (vehicleId != null) {
                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(
                                   builder:
                                       (_) => OnboardingVehiclePhotosScreen(
                                         session: widget.session,
+                                        vehicleId: vehicleId,
                                       ),
                                 ),
                               );
@@ -295,6 +308,8 @@ class _OnboardingVehicleDataScreenState
     required String hint,
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
+    TextCapitalization textCapitalization = TextCapitalization.none,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -314,6 +329,8 @@ class _OnboardingVehicleDataScreenState
           TextFormField(
             controller: controller,
             keyboardType: keyboardType,
+            inputFormatters: inputFormatters,
+            textCapitalization: textCapitalization,
             validator: validator,
             style: GoogleFonts.inter(
               fontSize: 15,
@@ -370,6 +387,14 @@ class _OnboardingVehicleDataScreenState
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Campo obrigatório';
+    }
+    return null;
+  }
+
+  String? _validatePlate(String? value) {
+    final plate = value?.replaceAll('-', '').trim() ?? '';
+    if (plate.length != 7 || !RegExp(r'^[A-Za-z0-9]{7}$').hasMatch(plate)) {
+      return 'Informe uma placa válida (ABC-1234 ou ABC1D23)';
     }
     return null;
   }

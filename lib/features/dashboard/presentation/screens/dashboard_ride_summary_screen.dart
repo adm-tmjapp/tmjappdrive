@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../ride_history/data/ride_history_api.dart';
 import '../../../ride_history/domain/ride_history_models.dart';
 import '../../../wallet_pix/presentation/screens/wallet_earnings_screen.dart';
 import '../../data/dashboard_api.dart';
+import '../../data/directions_route_service.dart';
 import '../../domain/dashboard_models.dart';
 
 // ==========================================
@@ -90,6 +93,8 @@ class _DashboardRideSummaryScreenState
 
     if (_showCompletedState) {
       return _CompletedRideScreen(
+        ride: ride,
+        detail: _detail,
         earningsLabel: earningsLabel,
         onClose: _backToHome,
         onOpenStatement: _openStatement,
@@ -406,11 +411,15 @@ class _DashboardRideSummaryScreenState
 // ==========================================
 class _CompletedRideScreen extends StatelessWidget {
   const _CompletedRideScreen({
+    required this.ride,
+    required this.detail,
     required this.earningsLabel,
     required this.onClose,
     required this.onOpenStatement,
   });
 
+  final RideCardItem ride;
+  final RideHistoryDetail? detail;
   final String earningsLabel;
   final VoidCallback onClose;
   final VoidCallback onOpenStatement;
@@ -454,7 +463,11 @@ class _CompletedRideScreen extends StatelessWidget {
                 children: [
                   const _CompletedHeader(),
                   const SizedBox(height: 32),
-                  _MapSummaryCard(earningsLabel: earningsLabel),
+                  _MapSummaryCard(
+                    ride: ride,
+                    detail: detail,
+                    earningsLabel: earningsLabel,
+                  ),
                   const SizedBox(height: 16),
                   const _DailyGoalCard(),
                   const SizedBox(height: 32),
@@ -555,8 +568,14 @@ class _CompletedHeader extends StatelessWidget {
 }
 
 class _MapSummaryCard extends StatelessWidget {
-  const _MapSummaryCard({required this.earningsLabel});
+  const _MapSummaryCard({
+    required this.ride,
+    required this.detail,
+    required this.earningsLabel,
+  });
 
+  final RideCardItem ride;
+  final RideHistoryDetail? detail;
   final String earningsLabel;
 
   @override
@@ -570,16 +589,15 @@ class _MapSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Área do Mapa / Placeholder bege
+          // Rota realmente percorrida, obtida dos detalhes da viagem.
           ClipRRect(
             borderRadius: const BorderRadius.vertical(
               top: Radius.circular(AppTheme.radius),
             ),
-            child: Container(
+            child: SizedBox(
               height: 160,
               width: double.infinity,
-              color: const Color(0xFFEBE3D3), // Fundo bege baseado na imagem
-              child: CustomPaint(painter: _MapPlaceholderPainter()),
+              child: _RideRouteMap(ride: ride, detail: detail),
             ),
           ),
           // Área de Informações de Ganhos
@@ -813,37 +831,124 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _RideRouteMap extends StatelessWidget {
-  const _RideRouteMap({required this.ride});
+class _RideRouteMap extends StatefulWidget {
+  const _RideRouteMap({required this.ride, this.detail});
 
   final RideCardItem ride;
+  final RideHistoryDetail? detail;
+
+  @override
+  State<_RideRouteMap> createState() => _RideRouteMapState();
+}
+
+class _RideRouteMapState extends State<_RideRouteMap> {
+  final _directions = DirectionsRouteService();
+  final _mapController = Completer<GoogleMapController>();
+  List<LatLng> _routePoints = const [];
+
+  RideCardItem get ride => widget.ride;
+  RideHistoryDetail? get detail => widget.detail;
 
   LatLng get _fallback => const LatLng(-23.55052, -46.633308);
 
-  LatLng _center() {
-    final pickup = _pickup();
-    final dropoff = _dropoff();
-    if (pickup != null && dropoff != null) {
-      return LatLng(
-        (pickup.latitude + dropoff.latitude) / 2,
-        (pickup.longitude + dropoff.longitude) / 2,
-      );
-    }
-    return pickup ?? dropoff ?? _fallback;
+  @override
+  void initState() {
+    super.initState();
+    _routePoints = _decodeStoredRoute();
+    if (_routePoints.length < 2) unawaited(_loadDirectionsRoute());
   }
 
   LatLng? _pickup() {
-    final lat = ride.pickupLat;
-    final lng = ride.pickupLng;
+    final lat = detail?.originLat ?? ride.pickupLat;
+    final lng = detail?.originLng ?? ride.pickupLng;
     if (lat == null || lng == null) return null;
     return LatLng(lat, lng);
   }
 
   LatLng? _dropoff() {
-    final lat = ride.dropoffLat;
-    final lng = ride.dropoffLng;
+    final lat = detail?.destinationLat ?? ride.dropoffLat;
+    final lng = detail?.destinationLng ?? ride.dropoffLng;
     if (lat == null || lng == null) return null;
     return LatLng(lat, lng);
+  }
+
+  List<LatLng> _decodeStoredRoute() {
+    final encoded = detail?.polyline;
+    if (encoded == null || encoded.isEmpty) return const [];
+    try {
+      final points = <LatLng>[];
+      var index = 0;
+      var latitude = 0;
+      var longitude = 0;
+      while (index < encoded.length) {
+        final lat = _decodeValue(encoded, index);
+        latitude += lat.value;
+        index = lat.nextIndex;
+        final lng = _decodeValue(encoded, index);
+        longitude += lng.value;
+        index = lng.nextIndex;
+        points.add(LatLng(latitude / 1e5, longitude / 1e5));
+      }
+      return points;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  ({int value, int nextIndex}) _decodeValue(String encoded, int index) {
+    var result = 0;
+    var shift = 0;
+    var byte = 0;
+    do {
+      byte = encoded.codeUnitAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length);
+    return (
+      value: (result & 1) == 1 ? ~(result >> 1) : result >> 1,
+      nextIndex: index,
+    );
+  }
+
+  Future<void> _loadDirectionsRoute() async {
+    final pickup = _pickup();
+    final dropoff = _dropoff();
+    if (pickup == null || dropoff == null) return;
+    try {
+      final points = await _directions.getRoute(
+        origin: pickup,
+        destination: dropoff,
+      );
+      if (!mounted || points.length < 2) return;
+      setState(() => _routePoints = points);
+      await _fitRoute();
+    } catch (_) {
+      // Endpoint markers remain visible if route geometry is unavailable.
+    }
+  }
+
+  Future<void> _fitRoute() async {
+    if (!_mapController.isCompleted || _routePoints.length < 2) return;
+    final controller = await _mapController.future;
+    var minLat = _routePoints.first.latitude;
+    var maxLat = minLat;
+    var minLng = _routePoints.first.longitude;
+    var maxLng = minLng;
+    for (final point in _routePoints.skip(1)) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+    await controller.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        28,
+      ),
+    );
   }
 
   @override
@@ -856,28 +961,44 @@ class _RideRouteMap extends StatelessWidget {
           markerId: const MarkerId('pickup'),
           position: pickup,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRose),
-          infoWindow: InfoWindow(title: ride.pickupAddress),
+          infoWindow: InfoWindow(
+            title: detail?.originAddress ?? ride.pickupAddress,
+          ),
         ),
       if (dropoff != null)
         Marker(
           markerId: const MarkerId('dropoff'),
           position: dropoff,
-          infoWindow: InfoWindow(title: ride.dropoffAddress),
+          infoWindow: InfoWindow(
+            title: detail?.destinationAddress ?? ride.dropoffAddress,
+          ),
         ),
     };
 
+    final polylinePoints =
+        _routePoints.length > 1
+            ? _routePoints
+            : [if (pickup != null) pickup, if (dropoff != null) dropoff];
     final polylines = <Polyline>{
-      if (pickup != null && dropoff != null)
+      if (polylinePoints.length > 1)
         Polyline(
           polylineId: const PolylineId('route'),
-          points: [pickup, dropoff],
+          points: polylinePoints,
           color: AppTheme.primary,
-          width: 4,
+          width: 6,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
         ),
     };
 
     return GoogleMap(
-      initialCameraPosition: CameraPosition(target: _center(), zoom: 13.5),
+      initialCameraPosition: CameraPosition(
+        target:
+            _routePoints.isNotEmpty
+                ? _routePoints[_routePoints.length ~/ 2]
+                : (pickup ?? dropoff ?? _fallback),
+        zoom: 13.5,
+      ),
       zoomControlsEnabled: false,
       myLocationEnabled: false,
       myLocationButtonEnabled: false,
@@ -886,52 +1007,10 @@ class _RideRouteMap extends StatelessWidget {
       tiltGesturesEnabled: false,
       markers: markers,
       polylines: polylines,
+      onMapCreated: (controller) {
+        if (!_mapController.isCompleted) _mapController.complete(controller);
+        unawaited(_fitRoute());
+      },
     );
   }
-}
-
-// Pintor simples para reproduzir o fundo abstrato do mapa mostrado no Figma
-class _MapPlaceholderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.4)
-          ..strokeWidth = 2.0
-          ..style = PaintingStyle.stroke;
-
-    final path = Path();
-
-    // Desenhando linhas diagonais para emular ruas urbanas simplificadas
-    for (double i = -size.height; i < size.width; i += 30) {
-      path.moveTo(i, 0);
-      path.lineTo(i + size.height, size.height);
-    }
-    for (double i = 0; i < size.width + size.height; i += 40) {
-      path.moveTo(i, 0);
-      path.lineTo(i - size.height, size.height);
-    }
-
-    // Desenha avenidas mais grossas
-    final thickPaint =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.6)
-          ..strokeWidth = 4.0
-          ..style = PaintingStyle.stroke;
-
-    canvas.drawPath(path, paint);
-    canvas.drawLine(
-      Offset(size.width * 0.2, 0),
-      Offset(size.width * 0.8, size.height),
-      thickPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.6, 0),
-      Offset(size.width * 0.1, size.height),
-      thickPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

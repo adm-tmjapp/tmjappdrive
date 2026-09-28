@@ -382,14 +382,15 @@ class OnbordingApi {
     try {
       final body = {
         "userId": userId,
-        "vehicleType": vehicleType.toLowerCase(),
+        "vehicleType": _vehicleTypeApiValue(vehicleType),
         "manufacturer": brand,
         "modelName": model,
         "year": year,
         "color": color,
         "vehiclePlate": plate.toUpperCase(),
         "usage": usage.toUpperCase(),
-        "renavam": (renavam == null || renavam.trim().isEmpty) ? null : renavam,
+        if (renavam != null && renavam.trim().isNotEmpty)
+          "renavam": renavam.trim(),
       };
 
       final response = await baseApi.post(
@@ -407,6 +408,24 @@ class OnbordingApi {
       return ApiResponseModel(response, null);
     } catch (error, stackTrace) {
       return ApiResponseModel.fromException(error, stackTrace, null);
+    }
+  }
+
+  String _vehicleTypeApiValue(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'carro':
+      case 'car':
+        return 'car';
+      case 'moto':
+      case 'motocicleta':
+      case 'motorcycle':
+        return 'motorcycle';
+      case 'utilitario':
+      case 'utilitário':
+      case 'utility':
+        return 'utility';
+      default:
+        return value.trim().toLowerCase();
     }
   }
 }

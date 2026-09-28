@@ -78,7 +78,7 @@ class DriverOnboardingApi {
     );
   }
 
-  Future<void> registerVehicle(
+  Future<String> registerVehicle(
     String userId,
     DriverOnboardingVehicleInput input,
   ) async {
@@ -96,32 +96,75 @@ class DriverOnboardingApi {
     if (response == null) {
       throw Exception('Falha ao cadastrar veiculo.');
     }
+    final data = response['data'];
+    final dataPayload = data is Map<String, dynamic> ? data : response;
+    final vehicle = dataPayload['vehicle'];
+    final payload = vehicle is Map<String, dynamic> ? vehicle : dataPayload;
+    final vehicleId =
+        payload['id']?.toString() ?? payload['vehicleId']?.toString();
+    if (vehicleId != null && vehicleId.trim().isNotEmpty) {
+      return vehicleId;
+    }
+
+    final normalizedPlate =
+        input.plate.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    final createdVehicle =
+        (await _profileApi.getVehicles()).where((candidate) {
+          final candidatePlate =
+              candidate.vehiclePlate
+                  .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
+                  .toUpperCase();
+          return candidatePlate == normalizedPlate;
+        }).firstOrNull;
+    if (createdVehicle == null || createdVehicle.id.trim().isEmpty) {
+      throw Exception('A API não retornou o identificador do veículo.');
+    }
+    return createdVehicle.id;
   }
 
   Future<void> uploadVehiclePhotos(
     String userId,
+    String? vehicleId,
     DriverOnboardingVehiclePhotosInput input,
   ) async {
-    final vehicle = await _profileApi.getVehicle();
-    if (vehicle == null || vehicle.id.trim().isEmpty) {
+    var targetVehicleId = vehicleId?.trim();
+    if (targetVehicleId == null || targetVehicleId.isEmpty) {
+      final vehicles = await _profileApi.getVehicles();
+      final pendingVehicles =
+          vehicles
+              .where(
+                (vehicle) =>
+                    !{
+                      'ACTIVE',
+                      'ATIVO',
+                    }.contains(vehicle.status?.trim().toUpperCase()),
+              )
+              .toList();
+      if (pendingVehicles.isNotEmpty) {
+        targetVehicleId = pendingVehicles.last.id.trim();
+      } else {
+        targetVehicleId = (await _profileApi.getVehicle())?.id.trim();
+      }
+    }
+    if (targetVehicleId == null || targetVehicleId.isEmpty) {
       throw Exception(
-        'Veículo não encontrado. Conclua o cadastro do veículo antes das fotos.',
+        'O cadastro não retornou o identificador do veículo para anexar as fotos.',
       );
     }
 
     await Future.wait([
       _profileApi.uploadVehicleDocument(
-        vehicleId: vehicle.id,
+        vehicleId: targetVehicleId,
         type: 'VEHICLE_FRONT',
         filePath: input.front.path,
       ),
       _profileApi.uploadVehicleDocument(
-        vehicleId: vehicle.id,
+        vehicleId: targetVehicleId,
         type: 'VEHICLE_BACK',
         filePath: input.back.path,
       ),
       _profileApi.uploadVehicleDocument(
-        vehicleId: vehicle.id,
+        vehicleId: targetVehicleId,
         type: 'VEHICLE_INTERIOR',
         filePath: input.interior.path,
       ),

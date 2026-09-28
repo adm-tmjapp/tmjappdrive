@@ -10,9 +10,14 @@ import '../../domain/onboarding_models.dart';
 import '../widgets/onboarding_ui.dart';
 
 class OnboardingVehiclePhotosScreen extends ConsumerStatefulWidget {
-  const OnboardingVehiclePhotosScreen({super.key, required this.session});
+  const OnboardingVehiclePhotosScreen({
+    super.key,
+    required this.session,
+    this.vehicleId,
+  });
 
   final DriverOnboardingSession session;
+  final String? vehicleId;
 
   @override
   ConsumerState<OnboardingVehiclePhotosScreen> createState() =>
@@ -259,6 +264,7 @@ class _OnboardingVehiclePhotosScreenState
                           allReady
                               ? () async {
                                 final ok = await controller.uploadVehiclePhotos(
+                                  widget.vehicleId,
                                   DriverOnboardingVehiclePhotosInput(
                                     front: _front!,
                                     back: _back!,

@@ -157,19 +157,44 @@ class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
     );
   }
 
-  Future<bool> registerVehicle(DriverOnboardingVehicleInput input) async {
-    return _runAction(
-      action: () => _repository.registerVehicle(_session.userId, input),
-      successMessage: 'Dados do veículo enviados com sucesso.',
-      reloadAfter: true,
+  Future<String?> registerVehicle(DriverOnboardingVehicleInput input) async {
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
     );
+    try {
+      final vehicleId = await _repository.registerVehicle(
+        _session.userId,
+        input,
+      );
+      await load();
+      state = state.copyWith(
+        isSubmitting: false,
+        successMessage: 'Dados do veículo enviados com sucesso.',
+        clearError: true,
+      );
+      return vehicleId;
+    } catch (e) {
+      state = state.copyWith(
+        isSubmitting: false,
+        error: _message(e, 'Falha ao cadastrar veículo.'),
+      );
+      return null;
+    }
   }
 
   Future<bool> uploadVehiclePhotos(
+    String? vehicleId,
     DriverOnboardingVehiclePhotosInput input,
   ) async {
     return _runAction(
-      action: () => _repository.uploadVehiclePhotos(_session.userId, input),
+      action:
+          () => _repository.uploadVehiclePhotos(
+            _session.userId,
+            vehicleId,
+            input,
+          ),
       successMessage: 'Fotos do veículo enviadas com sucesso.',
       reloadAfter: true,
     );
