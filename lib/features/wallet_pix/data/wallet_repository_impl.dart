@@ -74,18 +74,22 @@ class WalletRepositoryImpl implements WalletRepository {
       status:
           type == 'PIX_TRANSFER_DEBIT'
               ? TransferStatus.completed
-              : TransferStatus.pending,
+              : TransferStatus.processing,
     );
   }
 
   WalletTransaction _mapTransferToTransaction(Map<String, dynamic> transfer) {
     final statusRaw = _asString(transfer['status']).toUpperCase();
-    final status =
-        statusRaw == 'FAILED'
-            ? TransferStatus.failed
-            : (statusRaw == 'PENDING'
-                ? TransferStatus.pending
-                : TransferStatus.completed);
+    final status = switch (statusRaw) {
+      'REQUESTED' => TransferStatus.requested,
+      'APPROVED' => TransferStatus.approved,
+      'PROCESSING' => TransferStatus.processing,
+      'REJECTED' => TransferStatus.rejected,
+      'CANCELLED' => TransferStatus.cancelled,
+      'FAILED' => TransferStatus.failed,
+      'PENDING' => TransferStatus.processing,
+      _ => TransferStatus.completed,
+    };
 
     final referenceId = _asString(transfer['id']);
     return WalletTransaction(

@@ -365,7 +365,7 @@ class _PixTransferCpfScreenState extends ConsumerState<PixTransferCpfScreen> {
                                 ),
                               )
                               : const Text(
-                                'Confirmar Transferência',
+                                'Solicitar saque',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
@@ -375,7 +375,7 @@ class _PixTransferCpfScreenState extends ConsumerState<PixTransferCpfScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'O saldo será creditado instantaneamente em sua conta via PIX (24h).',
+                    'A solicitação será analisada pela equipe. Após a aprovação, o ASAAS processará o PIX.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF52525B), // Cinza mais escuro do mockup

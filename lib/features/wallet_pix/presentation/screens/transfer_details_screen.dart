@@ -179,8 +179,16 @@ class TransferDetailsScreen extends StatelessWidget {
 
   static String _statusLabel(TransferStatus status) {
     switch (status) {
-      case TransferStatus.pending:
-        return 'Pendente';
+      case TransferStatus.requested:
+        return 'Aguardando aprovação';
+      case TransferStatus.approved:
+        return 'Aprovada';
+      case TransferStatus.processing:
+        return 'Em processamento';
+      case TransferStatus.rejected:
+        return 'Rejeitada';
+      case TransferStatus.cancelled:
+        return 'Cancelada';
       case TransferStatus.completed:
         return 'Concluída';
       case TransferStatus.failed:

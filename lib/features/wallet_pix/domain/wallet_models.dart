@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 enum WalletPeriod { today, week, month }
 
-enum TransferStatus { pending, completed, failed }
+enum TransferStatus { requested, approved, processing, completed, rejected, failed, cancelled }
 
 @immutable
 class WalletTransaction {

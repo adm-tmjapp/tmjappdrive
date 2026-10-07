@@ -42,7 +42,7 @@ class TransferSuccessScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 42),
             const Text(
-              'Transferência\nRealizada!',
+              'Solicitação\nenviada!',
               style: TextStyle(
                 fontSize: 34,
                 color: Colors.white,
@@ -54,8 +54,8 @@ class TransferSuccessScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               tx == null
-                  ? 'Sua transferencia foi enviada com sucesso.'
-                  : 'O valor de ${_currency(tx.amount)} foi enviado com sucesso para sua conta via PIX.',
+                  ? 'Sua solicitação foi enviada para análise.'
+                  : 'O saque de ${_currency(tx.amount)} aguarda aprovação. Você poderá acompanhar o status na carteira.',
               style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -71,7 +71,7 @@ class TransferSuccessScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'DETALHES DA TRANSAÇÃO',
+                    'DETALHES DA SOLICITAÇÃO',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -85,10 +85,8 @@ class TransferSuccessScreen extends ConsumerWidget {
                   _kv('ID da Transacao', tx?.id ?? '-'),
                   const Divider(color: Color(0xFF3A0F2B), height: 28),
                   _kv(
-                    'Comprovante',
-                    tx?.receiptUrl == null
-                        ? 'Não disponível'
-                        : 'PIX_Comp_45020.pdf',
+                    'Status',
+                    _statusLabel(tx),
                   ),
                 ],
               ),
@@ -156,6 +154,20 @@ class TransferSuccessScreen extends ConsumerWidget {
   static String _currency(double value) {
     final text = value.toStringAsFixed(2).replaceAll('.', ',');
     return 'R\$ $text';
+  }
+
+  static String _statusLabel(dynamic tx) {
+    final status = tx?.status?.toString().split('.').last;
+    switch (status) {
+      case 'requested': return 'Aguardando aprovação';
+      case 'approved': return 'Aprovada';
+      case 'processing': return 'Em processamento';
+      case 'completed': return 'Paga';
+      case 'rejected': return 'Rejeitada';
+      case 'failed': return 'Falhou';
+      case 'cancelled': return 'Cancelada';
+      default: return 'Aguardando atualização';
+    }
   }
 }
 
