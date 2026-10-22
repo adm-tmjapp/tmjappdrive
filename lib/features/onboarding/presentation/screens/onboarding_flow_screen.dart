@@ -78,7 +78,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
       }
     });
 
-    if (snapshot?.canDrive == true) {
+    if (snapshot?.canDrive == true || snapshot?.isCompleted == true) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           Navigator.of(context).pushAndRemoveUntil(

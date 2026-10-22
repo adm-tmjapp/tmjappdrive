@@ -99,11 +99,29 @@ class StepStatus {
   StepStatus({this.completed, this.underReview});
 
   factory StepStatus.fromJson(Map<String, dynamic> json) {
+    final rawStatus =
+        (json["status"] ?? json["state"] ?? "").toString().trim().toLowerCase();
     return StepStatus(
-      completed: _asBool(json["completed"] ?? json["isCompleted"]),
-      underReview: _asBool(
-        json["underReview"] ?? json["under_review"] ?? json["isUnderReview"],
-      ),
+      completed:
+          _asBool(json["completed"] ?? json["isCompleted"]) ??
+          ({'approved', 'aprovado', 'completed', 'complete'}.contains(rawStatus)
+              ? true
+              : null),
+      underReview:
+          _asBool(
+            json["underReview"] ??
+                json["under_review"] ??
+                json["isUnderReview"],
+          ) ??
+          ({
+                'pending',
+                'under_review',
+                'em_analise',
+                'submitted',
+                'enviado',
+              }.contains(rawStatus)
+              ? true
+              : null),
     );
   }
 
@@ -120,7 +138,26 @@ StepStatus? _step(dynamic value) {
     return StepStatus.fromJson(Map<String, dynamic>.from(value));
   }
   if (value is bool || value is num || value is String) {
-    return StepStatus(completed: _asBool(value));
+    final normalized = value.toString().trim().toLowerCase();
+    return StepStatus(
+      completed:
+          _asBool(value) ??
+          ({
+                'approved',
+                'aprovado',
+                'completed',
+                'complete',
+              }.contains(normalized)
+              ? true
+              : null),
+      underReview: {
+        'pending',
+        'under_review',
+        'em_analise',
+        'submitted',
+        'enviado',
+      }.contains(normalized),
+    );
   }
   return null;
 }

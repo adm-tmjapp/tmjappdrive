@@ -123,7 +123,7 @@ class DriverOnboardingSnapshot {
   }
 
   bool get shouldShowPendingReview =>
-      !canDrive && isUnderReview && hasSubmittedAllSteps;
+      !canDrive && !isCompleted && isUnderReview && hasSubmittedAllSteps;
 
   double get progress {
     final items = checklistItems;
