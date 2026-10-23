@@ -1555,40 +1555,45 @@ class _DashboardBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 80,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F1013),
-        border: Border(top: BorderSide(color: Color(0xFF1E1E1E), width: 1)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(
-            icon: Icons.home_filled,
-            label: 'Início', // Fonte natural do mockup
-            active: currentIndex == 0,
-            onTap: () => onTap(0),
-          ),
-          _NavItem(
-            icon: Icons.account_balance_wallet_outlined,
-            label: 'Ganhos',
-            active: currentIndex == 1,
-            onTap: () => onTap(1),
-          ),
-          _NavItem(
-            icon: Icons.local_taxi_outlined,
-            label: 'Corridas',
-            active: currentIndex == 2,
-            onTap: () => onTap(2),
-          ),
-          _NavItem(
-            icon: Icons.person_outline,
-            label: 'Conta',
-            active: currentIndex == 3,
-            onTap: () => onTap(3),
-          ),
-        ],
+    // Android can render its gesture/navigation bar over the app.  Keep the
+    // interactive navigation items above that system inset on every device.
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 80,
+        decoration: const BoxDecoration(
+          color: Color(0xFF0F1013),
+          border: Border(top: BorderSide(color: Color(0xFF1E1E1E), width: 1)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(
+              icon: Icons.home_filled,
+              label: 'Início', // Fonte natural do mockup
+              active: currentIndex == 0,
+              onTap: () => onTap(0),
+            ),
+            _NavItem(
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Ganhos',
+              active: currentIndex == 1,
+              onTap: () => onTap(1),
+            ),
+            _NavItem(
+              icon: Icons.local_taxi_outlined,
+              label: 'Corridas',
+              active: currentIndex == 2,
+              onTap: () => onTap(2),
+            ),
+            _NavItem(
+              icon: Icons.person_outline,
+              label: 'Conta',
+              active: currentIndex == 3,
+              onTap: () => onTap(3),
+            ),
+          ],
+        ),
       ),
     );
   }
