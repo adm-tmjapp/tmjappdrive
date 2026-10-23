@@ -27,6 +27,8 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 
 class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
     with WidgetsBindingObserver {
+  bool _emailScreenOpened = false;
+
   DriverOnboardingSession get _session =>
       DriverOnboardingSession(responseLogin: widget.responseLogin);
 
@@ -53,6 +55,29 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(driverOnboardingControllerProvider(_session));
     final snapshot = state.snapshot;
+
+    final emailPending =
+        snapshot?.onboardingStatus?.steps?.email?.completed != true &&
+        widget.responseLogin.user?.emailVerified != true;
+    if (emailPending && !_emailScreenOpened && !state.isLoading) {
+      _emailScreenOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder:
+                    (_) => OnboardingEmailValidationScreen(session: _session),
+              ),
+            )
+            .then((_) {
+              if (!context.mounted) return;
+              ref
+                  .read(driverOnboardingControllerProvider(_session).notifier)
+                  .load();
+            });
+      });
+    }
 
     ref.listen(driverOnboardingControllerProvider(_session), (previous, next) {
       final messenger = ScaffoldMessenger.maybeOf(context);
@@ -124,6 +149,8 @@ class _ChecklistView extends ConsumerWidget {
     final items =
         snapshot?.checklistItems ?? const <DriverOnboardingChecklistItem>[];
     final progress = snapshot?.progress ?? 0;
+    final emailVerified =
+        snapshot?.onboardingStatus?.steps?.email?.completed == true;
 
     return RefreshIndicator(
       color: onboardingPrimary,
@@ -192,7 +219,20 @@ class _ChecklistView extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: OnboardingChecklistCard(
                     item: item,
-                    onTap: () => _openStep(context, item.type, session),
+                    onTap: () {
+                      if (!emailVerified &&
+                          item.type != DriverOnboardingStepType.email) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Confirme seu e-mail antes de continuar o cadastro.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      _openStep(context, item.type, session);
+                    },
                   ),
                 ),
               ),

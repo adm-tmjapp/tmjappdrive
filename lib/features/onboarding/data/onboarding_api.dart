@@ -100,8 +100,13 @@ class DriverOnboardingApi {
     final dataPayload = data is Map<String, dynamic> ? data : response;
     final vehicle = dataPayload['vehicle'];
     final payload = vehicle is Map<String, dynamic> ? vehicle : dataPayload;
+    // O endpoint pode retornar tanto o documento Mongo (`_id`) quanto o
+    // payload normalizado (`id`/`vehicleId`). Aceitar os três formatos evita
+    // perder o vínculo das fotos mesmo quando o cadastro foi concluído.
     final vehicleId =
-        payload['id']?.toString() ?? payload['vehicleId']?.toString();
+        payload['id']?.toString() ??
+        payload['_id']?.toString() ??
+        payload['vehicleId']?.toString();
     if (vehicleId != null && vehicleId.trim().isNotEmpty) {
       return vehicleId;
     }

@@ -428,15 +428,15 @@ class OnbordingApi {
     switch (value.trim().toLowerCase()) {
       case 'carro':
       case 'car':
-        return 'car';
+        return 'carro';
       case 'moto':
       case 'motocicleta':
       case 'motorcycle':
-        return 'motorcycle';
+        return 'moto';
       case 'utilitario':
       case 'utilitário':
       case 'utility':
-        return 'utility';
+        return 'carro';
       default:
         return value.trim().toLowerCase();
     }

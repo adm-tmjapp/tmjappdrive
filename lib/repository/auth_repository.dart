@@ -30,7 +30,10 @@ class AuthRepository {
       password,
       email,
     );
-    if (response.badRequest || response.result == null) return null;
+    if (response.badRequest) {
+      throw Exception(_extractApiMessage(response) ?? 'Credenciais inválidas.');
+    }
+    if (response.result == null) return null;
     final login = response.result!;
     if (login.token != null) {
       prefs?.setString(Strings.prefToken, login.token!);
@@ -56,6 +59,27 @@ class AuthRepository {
       );
     }
     return login;
+  }
+
+  String? _extractApiMessage(ApiResponseModel response) {
+    final body = response.response?.body;
+    if (body == null || body.isEmpty) return response.message;
+
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final message = decoded['message'];
+        if (message is String && message.trim().isNotEmpty) {
+          return message.trim();
+        }
+        final error = decoded['error'];
+        if (error is String && error.trim().isNotEmpty) {
+          return error.trim();
+        }
+      }
+    } catch (_) {}
+
+    return response.message;
   }
 
   Future<ResponseLogin?>? loginWithPhone(String phone) async {

@@ -5,8 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-import '../../class/url_launcher.dart';
 import '../../features/profile/presentation/screens/terms_of_use_screen.dart';
+import '../../features/profile/presentation/screens/privacy_policy_screen.dart';
 import '../../repository/auth_repository.dart';
 import 'bloc/login_bloc.dart';
 import 'bloc/login_event.dart';
@@ -20,8 +20,6 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  static const _privacyPolicyUrl = 'https://tmjapp.com.br/privacy';
-
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -112,7 +110,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               builder:
                   (dialogContext) => AlertDialog(
                     title: const Text('Sucesso'),
-                    content: const Text('Usuário criado com sucesso!'),
+                    content: const Text(
+                      'Cadastro criado com sucesso! Enviamos um código de confirmação para o seu e-mail. Faça login para confirmar o endereço e continuar o cadastro.',
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () {
@@ -331,9 +331,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                     recognizer:
                                         TapGestureRecognizer()
                                           ..onTap =
-                                              () => _openLegalDocument(
-                                                _privacyPolicyUrl,
-                                                'Política de Privacidade',
+                                              () => Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (_) =>
+                                                          const PrivacyPolicyScreen(),
+                                                ),
                                               ),
                                   ),
                                   const TextSpan(text: '.'),
@@ -516,22 +519,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     return null;
-  }
-
-  Future<void> _openLegalDocument(String url, String documentName) async {
-    try {
-      await UrlLauncher.url(url);
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Não foi possível abrir $documentName. Tente novamente.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 }
 

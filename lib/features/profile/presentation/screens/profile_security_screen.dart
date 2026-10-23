@@ -5,6 +5,7 @@ import 'package:tmjappdrive/class/url_launcher.dart';
 import '../../../ride_history/application/ride_history_providers.dart';
 import '../../domain/profile_models.dart';
 import 'terms_of_use_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class ProfileSecurityScreen extends ConsumerWidget {
   const ProfileSecurityScreen({super.key, required this.security});
@@ -20,16 +21,16 @@ class ProfileSecurityScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     Future<void> openSupport() async {
       try {
-        final contact =
-            await ref.read(rideHistoryRepositoryProvider).getSupportContact();
-        final target =
-            contact.chatUrl?.trim().isNotEmpty == true
-                ? contact.chatUrl!
-                : contact.whatsApp?.trim().isNotEmpty == true
-                ? 'https://wa.me/${contact.whatsApp!.replaceAll(RegExp(r'\D'), '')}'
-                : contact.phone?.trim().isNotEmpty == true
-                ? 'tel:${contact.phone}'
-                : null;
+        final contact = await ref
+            .read(rideHistoryRepositoryProvider)
+            .getSupportContact();
+        final target = contact.chatUrl?.trim().isNotEmpty == true
+            ? contact.chatUrl!
+            : contact.whatsApp?.trim().isNotEmpty == true
+            ? 'https://wa.me/${contact.whatsApp!.replaceAll(RegExp(r'\D'), '')}'
+            : contact.phone?.trim().isNotEmpty == true
+            ? 'tel:${contact.phone}'
+            : null;
         if (target == null) {
           throw Exception('Canal de suporte indisponível.');
         }
@@ -76,7 +77,9 @@ class ProfileSecurityScreen extends ConsumerWidget {
             icon: Icons.privacy_tip_rounded,
             title: 'Política de Privacidade',
             subtitle: security.privacyPolicyUrl,
-            onTap: () => UrlLauncher.url(security.privacyPolicyUrl),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+            ),
           ),
           const SizedBox(height: 12),
           _ActionCard(
