@@ -11,6 +11,7 @@ import '../../data/directions_route_service.dart';
 import '../../domain/dashboard_models.dart';
 import 'dashboard_ride_summary_screen.dart';
 import 'package:tmjappdrive/features/dashboard/presentation/widgets/notification_widgets.dart';
+import 'package:tmjappdrive/features/chat/presentation/driver_chat_screen.dart';
 
 class DashboardActiveRideScreen extends StatelessWidget {
   DashboardActiveRideScreen({super.key, required this.ride});
@@ -51,7 +52,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
       return _OngoingRideNavigationScreen(
         ride: ride,
         onFinishRide: _confirmFinishRide,
-        onMessage: _openSms,
+        onMessage: _openChat,
       );
     }
 
@@ -330,7 +331,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
                 ),
                 _QuickActionChip(
                   label: 'Onde você está?',
-                  onTap: () => _openSms(context),
+                  onTap: () => _openChat(context),
                 ),
               ],
             ),
@@ -364,7 +365,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
                   child: _BottomActionButton(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'Mensagem',
-                    onTap: () => _openSms(context),
+                    onTap: () => _openChat(context),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -424,17 +425,20 @@ class DashboardActiveRideScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _openSms(BuildContext context) async {
-    if (ride.passengerPhone.trim().isEmpty) {
-      _showMessage(context, 'Chat indisponivel para esta corrida.');
-      return;
-    }
-
-    final smsUri = Uri.parse('sms:${ride.passengerPhone}');
-    if (!await launchUrl(smsUri, mode: LaunchMode.externalApplication)) {
-      if (!context.mounted) return;
-      _showMessage(context, 'Nao foi possivel abrir a mensagem.');
-    }
+  Future<void> _openChat(BuildContext context) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (_) => DriverChatScreen(
+              rideId: ride.id,
+              passengerName:
+                  ride.passengerName.trim().isEmpty
+                      ? 'Passageiro'
+                      : ride.passengerName,
+              passengerPhotoUrl: ride.passengerPhotoUrl,
+            ),
+      ),
+    );
   }
 
   Future<void> _showArrivalBottomSheet(BuildContext context) async {
@@ -568,7 +572,8 @@ class DashboardActiveRideScreen extends StatelessWidget {
                                         Align(
                                           alignment: Alignment.centerRight,
                                           child: _ChatButton(
-                                            onTap: () => _openSms(sheetContext),
+                                            onTap:
+                                                () => _openChat(sheetContext),
                                           ),
                                         ),
                                       ],
@@ -590,7 +595,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 10),
                                         _ChatButton(
-                                          onTap: () => _openSms(sheetContext),
+                                          onTap: () => _openChat(sheetContext),
                                         ),
                                       ],
                                     );
@@ -658,7 +663,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
             (_) => _AcceptedRideNavigationScreen(
               ride: ride,
               onArrived: _showArrivalBottomSheet,
-              onMessage: _openSms,
+              onMessage: _openChat,
             ),
       ),
     );
