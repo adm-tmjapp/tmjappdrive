@@ -531,7 +531,8 @@ class DashboardActiveRideScreen extends StatelessWidget {
       return;
     }
 
-    final phoneUri = Uri.parse('tel:${ride.passengerPhone}');
+    // Hide the driver's caller ID until a relay service is configured.
+    final phoneUri = Uri(scheme: 'tel', path: '#31#${ride.passengerPhone}');
     if (!await launchUrl(phoneUri, mode: LaunchMode.externalApplication)) {
       if (!context.mounted) return;
       _showMessage(context, 'Nao foi possivel iniciar a ligacao.');
@@ -784,7 +785,12 @@ class DashboardActiveRideScreen extends StatelessWidget {
 
   Future<void> _startRide(BuildContext context) async {
     try {
-      await _dashboardApi.startRide(ride.id);
+      final verificationCode = await _askVerificationCode(context);
+      if (!context.mounted || verificationCode == null) return;
+      await _dashboardApi.startRide(
+        ride.id,
+        verificationCode: verificationCode,
+      );
 
       if (!context.mounted) return;
 
@@ -806,6 +812,40 @@ class DashboardActiveRideScreen extends StatelessWidget {
       if (!context.mounted) return;
       _showMessage(context, 'Nao foi possivel iniciar a corrida.');
     }
+  }
+
+  Future<String?> _askVerificationCode(BuildContext context) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Confirmar embarque'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              decoration: const InputDecoration(
+                labelText: 'Código informado pelo passageiro',
+                hintText: 'Ex.: 4821',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, controller.text),
+                child: const Text('Confirmar'),
+              ),
+            ],
+          ),
+    );
+    controller.dispose();
+    final normalized = result?.trim() ?? '';
+    return normalized.length == 4 ? normalized : null;
   }
 
   Future<bool> _markRideArrived(BuildContext context) async {

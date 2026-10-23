@@ -136,6 +136,34 @@ class RideHistoryApi {
         .toList(growable: false);
   }
 
+  Future<List<RideSupportTicket>> getSupportTickets(String rideId) async {
+    final response = await _baseApi.get(
+      Uri(path: 'v2/driver/rides/$rideId/support/tickets'),
+      headers: await _baseApi.getHeaders(),
+    );
+    final payload = _parsePayload(
+      response,
+      fallbackError: 'Falha ao carregar tickets de suporte.',
+    );
+    final items =
+        payload['tickets'] is List ? payload['tickets'] as List : const [];
+    return items
+        .map((item) {
+          final map = _asMap(item);
+          return RideSupportTicket(
+            ticketId: _asString(map['ticketId']),
+            issueCode: _issueCodeFromApi(_asString(map['issueCode'])),
+            status: _asString(map['status']),
+            message: _asString(map['message']),
+            createdAt: _asDateTimeOrNull(map['createdAt']) ?? DateTime.now(),
+            updatedAt: _asDateTimeOrNull(map['updatedAt']) ?? DateTime.now(),
+            subject: _nullableString(map['subject']),
+            description: _nullableString(map['description']),
+          );
+        })
+        .toList(growable: false);
+  }
+
   Future<RideSupportTicketResult> createSupportTicket({
     required String rideId,
     required RideSupportIssueCode issueCode,

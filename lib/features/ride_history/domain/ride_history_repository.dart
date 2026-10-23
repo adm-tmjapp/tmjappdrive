@@ -19,6 +19,8 @@ abstract class RideHistoryRepository {
 
   Future<List<RideSupportOption>> getSupportOptions(String rideId);
 
+  Future<List<RideSupportTicket>> getSupportTickets(String rideId);
+
   Future<RideSupportTicketResult> createSupportTicket({
     required String rideId,
     required RideSupportIssueCode issueCode,

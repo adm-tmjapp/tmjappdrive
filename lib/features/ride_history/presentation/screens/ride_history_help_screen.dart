@@ -31,6 +31,7 @@ class _RideHistoryHelpScreenState extends ConsumerState<RideHistoryHelpScreen> {
   @override
   Widget build(BuildContext context) {
     final optionsAsync = ref.watch(rideSupportOptionsProvider(widget.rideId));
+    final ticketsAsync = ref.watch(rideSupportTicketsProvider(widget.rideId));
 
     return Scaffold(
       backgroundColor: RideHistoryHelpScreen._bg,
@@ -93,6 +94,60 @@ class _RideHistoryHelpScreenState extends ConsumerState<RideHistoryHelpScreen> {
                             ),
                           )
                           .toList(),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            ticketsAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (tickets) {
+                if (tickets.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Acompanhe suas solicitações',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...tickets.map(
+                      (ticket) => Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: RideHistoryHelpScreen._card,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: RideHistoryHelpScreen._stroke,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.receipt_long_outlined,
+                              color: RideHistoryHelpScreen._primary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '${ticket.subject ?? 'Solicitação'}\nProtocolo: ${ticket.ticketId}\nStatus: ${ticket.status}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

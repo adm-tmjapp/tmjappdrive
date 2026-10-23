@@ -28,3 +28,11 @@ final rideSupportOptionsProvider = FutureProvider.family.autoDispose((
   final repository = ref.watch(rideHistoryRepositoryProvider);
   return repository.getSupportOptions(rideId);
 });
+
+final rideSupportTicketsProvider = FutureProvider.family.autoDispose((
+  ref,
+  String rideId,
+) async {
+  final repository = ref.watch(rideHistoryRepositoryProvider);
+  return repository.getSupportTickets(rideId);
+});

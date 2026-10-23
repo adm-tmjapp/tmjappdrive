@@ -46,6 +46,11 @@ class RideHistoryRepositoryImpl implements RideHistoryRepository {
   }
 
   @override
+  Future<List<RideSupportTicket>> getSupportTickets(String rideId) {
+    return _api.getSupportTickets(rideId);
+  }
+
+  @override
   Future<RideSupportTicketResult> createSupportTicket({
     required String rideId,
     required RideSupportIssueCode issueCode,

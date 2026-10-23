@@ -105,10 +105,14 @@ class DashboardApi {
     );
   }
 
-  Future<void> startRide(String rideId) async {
+  Future<void> startRide(String rideId, {String? verificationCode}) async {
     await _postRideAction(
       rideId: rideId,
       action: 'start',
+      body: {
+        if (verificationCode != null && verificationCode.trim().isNotEmpty)
+          'verificationCode': verificationCode.trim(),
+      },
       fallbackError: 'Nao foi possivel iniciar a corrida.',
     );
   }
@@ -124,6 +128,7 @@ class DashboardApi {
   Future<void> _postRideAction({
     required String rideId,
     required String action,
+    Map<String, dynamic>? body,
     required String fallbackError,
   }) async {
     final uri = Uri.parse('${_baseApi.baseUrl}v2/driver/rides/$rideId/$action');
@@ -131,7 +136,11 @@ class DashboardApi {
 
     _logRequest(method: 'POST', uri: uri, headers: headers);
 
-    final response = await _baseApi.client.post(uri, headers: headers);
+    final response = await _baseApi.client.post(
+      uri,
+      headers: headers,
+      body: body == null ? null : jsonEncode(body),
+    );
 
     _logResponse(method: 'POST', uri: uri, response: response);
 

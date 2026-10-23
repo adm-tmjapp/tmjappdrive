@@ -126,6 +126,29 @@ class RideSupportTicketResult {
 }
 
 @immutable
+class RideSupportTicket {
+  const RideSupportTicket({
+    required this.ticketId,
+    required this.issueCode,
+    required this.status,
+    required this.message,
+    required this.createdAt,
+    required this.updatedAt,
+    this.subject,
+    this.description,
+  });
+
+  final String ticketId;
+  final RideSupportIssueCode issueCode;
+  final String status;
+  final String message;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? subject;
+  final String? description;
+}
+
+@immutable
 class RidePassengerAbsentResult {
   const RidePassengerAbsentResult({
     required this.requestId,
