@@ -24,6 +24,7 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
   Timer? _timer;
   bool _loading = true;
   bool _sending = false;
+  bool _chatClosed = false;
   String? _error;
   @override
   void initState() {
@@ -52,6 +53,18 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
       });
       if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
     } catch (error) {
+      final message = error.toString().replaceFirst('Exception: ', '');
+      if (message.contains('encerrado após o término')) {
+        _timer?.cancel();
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = message;
+            _chatClosed = true;
+          });
+        }
+        return;
+      }
       if (mounted && _messages.isEmpty)
         setState(() {
           _loading = false;
@@ -72,6 +85,10 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
         _input.clear();
       });
     } catch (error) {
+      if (error.toString().contains('encerrado após o término') && mounted) {
+        _timer?.cancel();
+        setState(() => _chatClosed = true);
+      }
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -179,7 +196,7 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _input,
-                      enabled: !_sending,
+                      enabled: !_sending && !_chatClosed,
                       onSubmitted: (_) => _send(),
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
@@ -195,7 +212,7 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
                     ),
                   ),
                   IconButton(
-                    onPressed: _sending ? null : _send,
+                    onPressed: _sending || _chatClosed ? null : _send,
                     icon: const Icon(
                       Icons.send_rounded,
                       color: Color(0xFFC62F78),
