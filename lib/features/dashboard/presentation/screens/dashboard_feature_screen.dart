@@ -782,7 +782,7 @@ class _NewRequestCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           const Text(
-                            'VALOR ESTIMADO',
+                            'VOCÊ RECEBE',
                             style: TextStyle(
                               color: Color(0xFFC62F78),
                               fontSize: 12,
@@ -792,7 +792,7 @@ class _NewRequestCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            ride.price,
+                            ride.netPrice ?? ride.price,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 24,
@@ -800,6 +800,17 @@ class _NewRequestCard extends StatelessWidget {
                               height: 1.0,
                             ),
                           ),
+                          if (ride.netPrice != null &&
+                              ride.serviceFee != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Após taxa de ${ride.serviceFee}',
+                              style: const TextStyle(
+                                color: Color(0xFF94A3B8),
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],

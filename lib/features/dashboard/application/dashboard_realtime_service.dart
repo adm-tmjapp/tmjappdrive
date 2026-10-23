@@ -193,6 +193,12 @@ class DashboardRealtimeService {
       details:
           '${_distanceValue(data['distanceKm'])} km • ${_intValue(data['etaMin'])} min • Pagamento via app',
       price: _currencyValue(data['price']),
+      netPrice:
+          data['netAmount'] == null ? null : _currencyValue(data['netAmount']),
+      serviceFee:
+          data['serviceFee'] == null
+              ? null
+              : _currencyValue(data['serviceFee']),
       isHighPriority: false,
       isPassenger: true,
       pickupAddress: _stringValue(data['pickupAddress']),

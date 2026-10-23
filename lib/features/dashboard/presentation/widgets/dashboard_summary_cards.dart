@@ -19,7 +19,7 @@ class DashboardSummaryCards extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _SummaryCard(
-                      label: 'Faturado',
+                      label: 'Ganhos líquidos',
                       value: summary.todayEarnings,
                       icon: Icons.show_chart_rounded,
                     ),
@@ -36,8 +36,8 @@ class DashboardSummaryCards extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               _SummaryCard(
-                label: 'Nota',
-                value: _rating(summary.progressPercent),
+                label: 'Sua nota',
+                value: _rating(summary.driverRating),
                 icon: Icons.star_rounded,
               ),
             ],
@@ -48,7 +48,7 @@ class DashboardSummaryCards extends StatelessWidget {
           children: [
             Expanded(
               child: _SummaryCard(
-                label: 'Faturado',
+                label: 'Ganhos líquidos',
                 value: summary.todayEarnings,
                 icon: Icons.show_chart_rounded,
               ),
@@ -64,8 +64,8 @@ class DashboardSummaryCards extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _SummaryCard(
-                label: 'Nota',
-                value: _rating(summary.progressPercent),
+                label: 'Sua nota',
+                value: _rating(summary.driverRating),
                 icon: Icons.star_rounded,
               ),
             ),
@@ -75,8 +75,8 @@ class DashboardSummaryCards extends StatelessWidget {
     );
   }
 
-  String _rating(int progressPercent) {
-    final rating = 4 + (progressPercent / 100);
+  String _rating(double? rating) {
+    if (rating == null || rating <= 0) return '--';
     return rating.toStringAsFixed(1);
   }
 }

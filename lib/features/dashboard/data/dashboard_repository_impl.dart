@@ -30,6 +30,11 @@ class DashboardRepositoryImpl implements DashboardRepository {
       summary: DashboardSummary(
         todayRides: _asInt(summaryMap['todayRides']),
         todayEarnings: _currency(_asNum(summaryMap['todayEarnings'])),
+        todayGrossEarnings:
+            summaryMap['todayGrossEarnings'] == null
+                ? null
+                : _currency(_asNum(summaryMap['todayGrossEarnings'])),
+        driverRating: _asNullableDouble(summaryMap['driverRating']),
         progressPercent: _asInt(summaryMap['progressPercent']),
       ),
       rides: allRidesList.map(_toRide).toList(growable: false),
@@ -82,6 +87,12 @@ class DashboardRepositoryImpl implements DashboardRepository {
       details:
           '${_distance(distance)} km • $eta min • ${_paymentMethod(_asString(map['paymentMethod']))}',
       price: _currency(_asNum(map['price'])),
+      netPrice:
+          map['netAmount'] == null ? null : _currency(_asNum(map['netAmount'])),
+      serviceFee:
+          map['serviceFee'] == null
+              ? null
+              : _currency(_asNum(map['serviceFee'])),
       isHighPriority: _asBool(map['highPriority']),
       isPassenger: category == 'passenger',
       pickupAddress: _asString(pickup['address']),

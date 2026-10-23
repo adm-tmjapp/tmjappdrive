@@ -37,6 +37,8 @@ class RideCardItem {
   final String route;
   final String details;
   final String price;
+  final String? netPrice;
+  final String? serviceFee;
   final bool isHighPriority;
   final bool isPassenger;
   final String pickupAddress;
@@ -66,6 +68,8 @@ class RideCardItem {
     required this.route,
     required this.details,
     required this.price,
+    this.netPrice,
+    this.serviceFee,
     required this.isHighPriority,
     required this.isPassenger,
     required this.pickupAddress,
@@ -96,6 +100,8 @@ class RideCardItem {
     String? route,
     String? details,
     String? price,
+    String? netPrice,
+    String? serviceFee,
     bool? isHighPriority,
     bool? isPassenger,
     String? pickupAddress,
@@ -125,6 +131,8 @@ class RideCardItem {
       route: route ?? this.route,
       details: details ?? this.details,
       price: price ?? this.price,
+      netPrice: netPrice ?? this.netPrice,
+      serviceFee: serviceFee ?? this.serviceFee,
       isHighPriority: isHighPriority ?? this.isHighPriority,
       isPassenger: isPassenger ?? this.isPassenger,
       pickupAddress: pickupAddress ?? this.pickupAddress,
@@ -154,11 +162,15 @@ class RideCardItem {
 class DashboardSummary {
   final int todayRides;
   final String todayEarnings;
+  final String? todayGrossEarnings;
+  final double? driverRating;
   final int progressPercent;
 
   const DashboardSummary({
     required this.todayRides,
     required this.todayEarnings,
+    this.todayGrossEarnings,
+    this.driverRating,
     required this.progressPercent,
   });
 }

@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/dashboard_api.dart';
+import '../../data/driver_safety_api.dart';
 import '../../data/directions_route_service.dart';
 import '../../domain/dashboard_models.dart';
 import 'dashboard_ride_summary_screen.dart';
@@ -18,6 +19,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
 
   final RideCardItem ride;
   final DashboardApi _dashboardApi = DashboardApi();
+  final DriverSafetyApi _safetyApi = DriverSafetyApi();
 
   static const Color _bg = Color(0xFF000000);
   static const Color _panel = Color(0xFF0C0F18);
@@ -97,8 +99,7 @@ class DashboardActiveRideScreen extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed:
-                      () => _showMessage(context, 'Canal SOS em configuracao.'),
+                  onPressed: () => _showSafetyCenter(context),
                   child: const Text(
                     'SOS',
                     style: TextStyle(
@@ -410,6 +411,118 @@ class DashboardActiveRideScreen extends StatelessWidget {
     final url = ride.passengerPhotoUrl;
     if (url == null || url.trim().isEmpty) return null;
     return DecorationImage(image: NetworkImage(url), fit: BoxFit.cover);
+  }
+
+  Future<void> _showSafetyCenter(BuildContext context) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF101722),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder:
+          (sheetContext) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Central de segurança',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Se estiver em perigo imediato, ligue para a Polícia. Nos demais casos, registre o incidente para acompanhamento da TMJ.',
+                    style: TextStyle(color: _muted, height: 1.35),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(sheetContext, 'police'),
+                    icon: const Icon(Icons.local_police_outlined),
+                    label: const Text('Ligar para 190'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD32F2F),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(sheetContext, 'incident'),
+                    icon: const Icon(Icons.report_problem_outlined),
+                    label: const Text('Registrar incidente'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+
+    if (!context.mounted || action == null) return;
+    if (action == 'police') {
+      final launched = await launchUrl(
+        Uri.parse('tel:190'),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && context.mounted) {
+        _showMessage(context, 'Não foi possível iniciar a ligação.');
+      }
+      return;
+    }
+
+    final description = await _askIncidentDescription(context);
+    if (!context.mounted || description == null || description.trim().isEmpty)
+      return;
+    try {
+      final ticketId = await _safetyApi.reportIncident(
+        rideId: ride.id,
+        description: description,
+      );
+      if (context.mounted) {
+        _showMessage(context, 'Incidente registrado. Protocolo: $ticketId');
+      }
+    } on DriverSafetyException catch (error) {
+      if (context.mounted) _showMessage(context, error.message);
+    }
+  }
+
+  Future<String?> _askIncidentDescription(BuildContext context) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Registrar incidente'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Conte o que aconteceu',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, controller.text),
+                child: const Text('Enviar'),
+              ),
+            ],
+          ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _callPassenger(BuildContext context) async {
@@ -1390,6 +1503,7 @@ class _OngoingRideNavigationScreenState
     extends State<_OngoingRideNavigationScreen> {
   final Completer<GoogleMapController> _mapController = Completer();
   final _directions = DirectionsRouteService();
+  final DriverSafetyApi _safetyApi = DriverSafetyApi();
   StreamSubscription<Position>? _positionSubscription;
   LatLng? _driverPosition;
   List<LatLng> _roadRoute = const [];
@@ -1488,6 +1602,83 @@ class _OngoingRideNavigationScreenState
         });
       });
     } catch (_) {}
+  }
+
+  Future<void> _showSafetyCenter(BuildContext context) async {
+    final action = await showDialog<String>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Central de segurança'),
+            content: const Text(
+              'Em perigo imediato, ligue para 190. Para os demais casos, registre um incidente para a TMJ acompanhar.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, 'incident'),
+                child: const Text('Registrar incidente'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, 'police'),
+                child: const Text('Ligar 190'),
+              ),
+            ],
+          ),
+    );
+    if (!context.mounted || action == null) return;
+    if (action == 'police') {
+      await launchUrl(
+        Uri.parse('tel:190'),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+    final controller = TextEditingController();
+    final description = await showDialog<String>(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Registrar incidente'),
+            content: TextField(
+              controller: controller,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText: 'Conte o que aconteceu',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, controller.text),
+                child: const Text('Enviar'),
+              ),
+            ],
+          ),
+    );
+    controller.dispose();
+    if (!context.mounted || description == null || description.trim().isEmpty) {
+      return;
+    }
+    try {
+      final ticketId = await _safetyApi.reportIncident(
+        rideId: ride.id,
+        description: description,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Incidente registrado. Protocolo: $ticketId')),
+        );
+      }
+    } on DriverSafetyException catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    }
   }
 
   Set<Marker> get _markers {
@@ -1661,15 +1852,7 @@ class _OngoingRideNavigationScreenState
               top: 12,
               left: 16,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                      const SnackBar(
-                        content: Text('Canal SOS em configuracao.'),
-                      ),
-                    );
-                },
+                onPressed: () => _showSafetyCenter(context),
                 icon: const Icon(Icons.sos_rounded, color: Colors.white),
                 label: const Text(
                   'SOS',
