@@ -28,7 +28,6 @@ class BaseApi extends BaseClient {
     Object? body,
     Encoding? encoding,
   }) {
-    // TODO: implement post
     return super.post(
       Uri.parse(baseUrl + url.toString()),
       headers: headers,
@@ -44,7 +43,6 @@ class BaseApi extends BaseClient {
     Object? body,
     Encoding? encoding,
   }) {
-    // TODO: implement put
     return super.put(
       Uri.parse(baseUrl + url.toString()),
       headers: headers,
