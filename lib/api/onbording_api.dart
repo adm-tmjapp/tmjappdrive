@@ -57,14 +57,20 @@ class OnbordingApi {
         final decodedBody = jsonDecode(response.body);
         if (decodedBody is Map<String, dynamic>) {
           final data = decodedBody['data'];
-          final payload =
-              decodedBody['onboardingStatus'] ??
-              decodedBody['onboarding_status'] ??
-              (data is Map
-                  ? data['onboardingStatus'] ??
-                      data['onboarding_status'] ??
-                      data
-                  : null);
+          final dataMap =
+              data is Map
+                  ? Map<String, dynamic>.from(data)
+                  : <String, dynamic>{};
+          final payload = _firstMap([
+            decodedBody['onboardingStatus'],
+            decodedBody['onboarding_status'],
+            dataMap['onboardingStatus'],
+            dataMap['onboarding_status'],
+            dataMap['status'],
+            decodedBody['status'],
+            dataMap.isNotEmpty ? dataMap : null,
+            decodedBody,
+          ]);
           if (payload is Map) {
             return ApiResponseModel(
               response,
@@ -79,6 +85,13 @@ class OnbordingApi {
     } catch (error, stackTrace) {
       return ApiResponseModel.fromException(error, stackTrace, null);
     }
+  }
+
+  dynamic _firstMap(List<dynamic> values) {
+    for (final value in values) {
+      if (value is Map) return value;
+    }
+    return null;
   }
 
   Future<ApiResponseModel<SmsCodeResponse?>> newCodePhone(String userId) async {

@@ -1,5 +1,3 @@
-
-
 import 'package:tmjappdrive/data/onboardingStatus.dart';
 import 'package:tmjappdrive/data/user.dart';
 
@@ -17,13 +15,27 @@ class ResponseLogin {
   });
 
   factory ResponseLogin.fromJson(Map<String, dynamic> json) {
+    final data =
+        json['data'] is Map
+            ? Map<String, dynamic>.from(json['data'] as Map)
+            : json;
+    final userJson =
+        data['user'] is Map
+            ? Map<String, dynamic>.from(data['user'] as Map)
+            : <String, dynamic>{};
+    final onboarding =
+        data['onboardingStatus'] ??
+        data['onboarding_status'] ??
+        json['onboardingStatus'] ??
+        json['onboarding_status'];
+
     return ResponseLogin(
-      success: json["success"],
-      token: json["token"],
-      user: User.fromJson(json["user"]),
+      success: _asBool(data["success"] ?? json["success"]),
+      token: data["token"] ?? json["token"],
+      user: User.fromJson(userJson),
       onboardingStatus:
-          json["onboardingStatus"] != null
-              ? OnboardingStatus.fromJson(json["onboardingStatus"])
+          onboarding is Map
+              ? OnboardingStatus.fromJson(Map<String, dynamic>.from(onboarding))
               : null,
     );
   }
@@ -34,4 +46,22 @@ class ResponseLogin {
     "user": user,
     "onboardingStatus": onboardingStatus,
   };
+
+  static bool? _asBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      switch (value.trim().toLowerCase()) {
+        case 'true':
+        case '1':
+        case 'success':
+        case 'ok':
+          return true;
+        case 'false':
+        case '0':
+          return false;
+      }
+    }
+    return null;
+  }
 }

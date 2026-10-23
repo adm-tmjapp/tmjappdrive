@@ -31,13 +31,39 @@ class OnboardingStatus {
   });
 
   factory OnboardingStatus.fromJson(Map<String, dynamic> json) {
+    final rawStatus = _normalizedStatus(json['status'] ?? json['state']);
+    final completed =
+        _asBool(
+          json["isCompleted"] ?? json["is_completed"] ?? json['completed'],
+        ) ??
+        _statusIsCompleted(rawStatus);
+    final underReview =
+        _asBool(
+          json["isUnderReview"] ??
+              json["is_under_review"] ??
+              json['underReview'] ??
+              json['under_review'],
+        ) ??
+        _statusIsReviewing(rawStatus);
+    final canDrive =
+        _asBool(json["canDrive"] ?? json["can_drive"] ?? json['approved']) ??
+        _statusIsCompleted(rawStatus);
+
     return OnboardingStatus(
-      isCompleted: _asBool(json["isCompleted"] ?? json["is_completed"]),
-      isUnderReview: _asBool(json["isUnderReview"] ?? json["is_under_review"]),
-      canDrive: _asBool(json["canDrive"] ?? json["can_drive"]),
+      isCompleted: completed,
+      isUnderReview: underReview,
+      canDrive: canDrive,
       steps:
-          json["steps"] is Map
-              ? Steps.fromJson(Map<String, dynamic>.from(json["steps"] as Map))
+          (json["steps"] ?? json['onboardingSteps'] ?? json['onboarding_steps'])
+                  is Map
+              ? Steps.fromJson(
+                Map<String, dynamic>.from(
+                  (json["steps"] ??
+                          json['onboardingSteps'] ??
+                          json['onboarding_steps'])
+                      as Map,
+                ),
+              )
               : null,
     );
   }
@@ -185,3 +211,29 @@ bool? _asBool(dynamic value) {
   }
   return null;
 }
+
+String _normalizedStatus(dynamic value) => (value ?? '')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replaceAll('-', '_')
+    .replaceAll(' ', '_');
+
+bool _statusIsCompleted(String status) => {
+  'approved',
+  'aprovado',
+  'completed',
+  'complete',
+  'active',
+  'ativo',
+  'ready',
+}.contains(status);
+
+bool _statusIsReviewing(String status) => {
+  'pending',
+  'under_review',
+  'em_analise',
+  'submitted',
+  'enviado',
+  'reviewing',
+}.contains(status);

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../class/url_launcher.dart';
+import '../../../../screens/dashboard_screen.dart';
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
 import '../../../ride_history/application/ride_history_providers.dart';
@@ -68,6 +69,21 @@ class _OnboardingPendingReviewScreenState
       driverOnboardingControllerProvider(widget.session).notifier,
     );
     final state = ref.watch(driverOnboardingControllerProvider(widget.session));
+
+    ref.listen(driverOnboardingControllerProvider(widget.session), (
+      previous,
+      next,
+    ) {
+      final snapshot = next.snapshot;
+      if (snapshot?.canDrive != true && snapshot?.isCompleted != true) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => DashboardScreen()),
+          (route) => false,
+        );
+      });
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000), // Fundo preto do Figma

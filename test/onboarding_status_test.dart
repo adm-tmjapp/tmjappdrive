@@ -83,4 +83,19 @@ void main() {
 
     expect(incomplete.shouldShowPendingReview, isFalse);
   });
+
+  test('reconhece resposta aprovada com status textual', () {
+    final status = OnboardingStatus.fromJson({
+      'status': 'approved',
+      'steps': {
+        'profile_photo': 'approved',
+        'email': {'status': 'approved'},
+      },
+    });
+
+    expect(status.isCompleted, isTrue);
+    expect(status.canDrive, isTrue);
+    expect(status.steps?.profilePhoto?.completed, isTrue);
+    expect(status.steps?.email?.completed, isTrue);
+  });
 }
