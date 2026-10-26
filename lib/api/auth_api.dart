@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:http/http.dart';
-import 'package:tmjappdrive/data/response_singup.dart';
 
 import '../data/api_response.dart';
 import '../data/response_login.dart';
@@ -73,7 +72,7 @@ class Authapi {
     }
   }
 
-  Future<ApiResponseModel<ResponseSingup?>> signUp(
+  Future<ApiResponseModel<ResponseLogin?>> signUp(
     String phone,
     String cpf,
     String name,
@@ -105,21 +104,58 @@ class Authapi {
 
         if (decodedBody is Map<String, dynamic>) {
           if (decodedBody.containsKey('data')) {
-            ResponseSingup responseSingup = ResponseSingup.fromJson(
+            ResponseLogin responseLogin = ResponseLogin.fromJson(
               decodedBody['data'],
             );
-            return ApiResponseModel(response, responseSingup);
+            return ApiResponseModel(response, responseLogin);
           } else {
-            ResponseSingup responseSingup = ResponseSingup.fromJson(
-              decodedBody,
-            );
-            return ApiResponseModel(response, responseSingup);
+            ResponseLogin responseLogin = ResponseLogin.fromJson(decodedBody);
+            return ApiResponseModel(response, responseLogin);
           }
         }
         return ApiResponseModel(response, null);
       } else {
         return ApiResponseModel(response, null);
       }
+    } catch (error, stackTrace) {
+      return ApiResponseModel.fromException(error, stackTrace, null);
+    }
+  }
+
+  Future<ApiResponseModel<void>> sendSignupEmailVerificationCode() async {
+    try {
+      final response = await baseApi.post(
+        Uri.parse('v2/auth/email/send-code'),
+        headers: await baseApi.getHeaders(),
+        body: const <String, dynamic>{},
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponseModel(response, null);
+      }
+
+      return ApiResponseModel(response, null);
+    } catch (error, stackTrace) {
+      return ApiResponseModel.fromException(error, stackTrace, null);
+    }
+  }
+
+  Future<ApiResponseModel<ResponseLogin?>> verifySignupEmailCode(
+    String code,
+  ) async {
+    try {
+      final response = await baseApi.post(
+        Uri.parse('v2/auth/email/verify'),
+        headers: await baseApi.getHeaders(),
+        body: {'code': code.trim()},
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final decoded = jsonDecode(response.body);
+        return ApiResponseModel(response, ResponseLogin.fromJson(decoded));
+      }
+
+      return ApiResponseModel(response, null);
     } catch (error, stackTrace) {
       return ApiResponseModel.fromException(error, stackTrace, null);
     }

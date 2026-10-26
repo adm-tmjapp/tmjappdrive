@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tmjappdrive/data/response_singup.dart';
 import '../api/auth_api.dart';
 import '../data/api_response.dart';
 import '../data/response_login.dart';
@@ -63,7 +62,7 @@ class AuthRepository {
 
   String? _extractApiMessage(ApiResponseModel response) {
     final body = response.response?.body;
-    if (body == null || body.isEmpty) return response.message;
+    if (body == null || body.isEmpty) return response.response?.reasonPhrase;
 
     try {
       final decoded = jsonDecode(body);
@@ -79,7 +78,7 @@ class AuthRepository {
       }
     } catch (_) {}
 
-    return response.message;
+    return response.response?.reasonPhrase;
   }
 
   Future<ResponseLogin?>? loginWithPhone(String phone) async {
@@ -115,7 +114,7 @@ class AuthRepository {
     return login;
   }
 
-  Future<ResponseSingup?>? signUp(
+  Future<ResponseLogin?>? signUp(
     String phone,
     String cpf,
     String name,
@@ -124,7 +123,7 @@ class AuthRepository {
     String password,
   ) async {
     await _ensurePrefs();
-    ApiResponseModel<ResponseSingup?> apiResponse = await auth.signUp(
+    ApiResponseModel<ResponseLogin?> apiResponse = await auth.signUp(
       phone,
       cpf,
       name,
@@ -163,7 +162,17 @@ class AuthRepository {
     if (apiResponse.badRequest || apiResponse.serverError) {
       throw Exception('Não foi possível cadastrar o usuário.');
     } else {
-      return apiResponse.result;
+      final signup = apiResponse.result;
+      if (signup?.token != null) {
+        prefs?.setString(Strings.prefToken, signup!.token!);
+      }
+      if (signup?.user?.name != null && signup!.user!.name!.trim().isNotEmpty) {
+        prefs?.setString(Strings.prefDriverName, signup.user!.name!.trim());
+      }
+      if (signup?.user?.id != null && signup!.user!.id!.trim().isNotEmpty) {
+        prefs?.setString(Strings.prefDriverId, signup.user!.id!.trim());
+      }
+      return signup;
     }
   }
 
@@ -203,6 +212,47 @@ class AuthRepository {
         }
       } catch (_) {}
     }
+  }
+
+  Future<void> sendSignupEmailVerificationCode() async {
+    await _ensurePrefs();
+    final response = await auth.sendSignupEmailVerificationCode();
+    if (response.hasException || response.badRequest || response.serverError) {
+      throw Exception(
+        _extractApiMessage(response) ??
+            'Não foi possível enviar o código de confirmação.',
+      );
+    }
+  }
+
+  Future<ResponseLogin> verifySignupEmailCode(String code) async {
+    await _ensurePrefs();
+    final response = await auth.verifySignupEmailCode(code);
+    if (response.hasException || response.badRequest || response.serverError) {
+      throw Exception(
+        _extractApiMessage(response) ?? 'Código inválido ou expirado.',
+      );
+    }
+
+    final verified = response.result;
+    if (verified == null) {
+      throw Exception('A API não retornou a sessão validada.');
+    }
+
+    if (verified.token?.trim().isNotEmpty == true) {
+      await prefs?.setString(Strings.prefToken, verified.token!.trim());
+    }
+    if (verified.user?.id?.trim().isNotEmpty == true) {
+      await prefs?.setString(Strings.prefDriverId, verified.user!.id!.trim());
+    }
+    if (verified.user?.name?.trim().isNotEmpty == true) {
+      await prefs?.setString(
+        Strings.prefDriverName,
+        verified.user!.name!.trim(),
+      );
+    }
+
+    return verified;
   }
 
   Future<void> resetPassword({

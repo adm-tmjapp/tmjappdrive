@@ -1,5 +1,4 @@
 import 'package:tmjappdrive/data/response_login.dart';
-import 'package:tmjappdrive/data/response_singup.dart';
 
 abstract class LoginState {}
 
@@ -24,7 +23,7 @@ class LoginFailure extends LoginState {
 class SignupLoading extends LoginState {}
 
 class SignupSuccess extends LoginState {
-  final ResponseSingup data;
+  final ResponseLogin data;
 
   SignupSuccess(this.data);
 }

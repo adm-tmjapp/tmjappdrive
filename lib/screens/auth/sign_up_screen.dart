@@ -11,6 +11,7 @@ import '../../repository/auth_repository.dart';
 import 'bloc/login_bloc.dart';
 import 'bloc/login_event.dart';
 import 'bloc/login_state.dart';
+import 'signup_email_verification_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -104,25 +105,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
             );
           } else if (state is SignupSuccess) {
             Navigator.of(context, rootNavigator: true).pop();
-            showDialog<void>(
-              context: context,
-              barrierDismissible: false,
-              builder:
-                  (dialogContext) => AlertDialog(
-                    title: const Text('Sucesso'),
-                    content: const Text(
-                      'Cadastro criado com sucesso! Enviamos um código de confirmação para o seu e-mail. Faça login para confirmar o endereço e continuar o cadastro.',
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder:
+                    (_) => SignupEmailVerificationScreen(
+                      responseLogin: state.data,
                     ),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop();
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Ir para Login'),
-                      ),
-                    ],
-                  ),
+              ),
             );
           } else if (state is SignupFailure) {
             Navigator.of(context, rootNavigator: true).maybePop();
