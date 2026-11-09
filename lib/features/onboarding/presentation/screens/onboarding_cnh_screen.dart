@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
 import '../widgets/onboarding_ui.dart';
+import 'onboarding_selfie_camera_screen.dart';
 
 class OnboardingCnhScreen extends ConsumerStatefulWidget {
   const OnboardingCnhScreen({super.key, required this.session});
@@ -21,6 +23,7 @@ class OnboardingCnhScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
+  static const _draftPrefix = 'driver_onboarding_cnh_draft';
   final _picker = ImagePicker();
   File? _front;
   File? _back;
@@ -30,7 +33,7 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
   @override
   void initState() {
     super.initState();
-    _recoverLostImage();
+    _restoreCaptureDraft();
   }
 
   @override
@@ -160,7 +163,7 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
                     previewIcon:
                         Icons.face_outlined, // Ícone de rosto do mockup
                     buttonLabel: 'Tirar Selfie',
-                    onTap: () => _pick('selfie', cameraOnly: true),
+                    onTap: _captureSelfie,
                   ),
                   const SizedBox(height: 24),
                   Container(
@@ -222,6 +225,8 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
                             );
                             if (!context.mounted) return;
                             if (ok) {
+                              await _clearCaptureDraft();
+                              if (!context.mounted) return;
                               Navigator.of(context).pop();
                             }
                           },
@@ -264,25 +269,66 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
     );
   }
 
-  Future<void> _pick(String kind, {bool cameraOnly = false}) async {
+  Future<void> _pick(String kind) async {
     _pendingKind = kind;
+    await _savePendingKind(kind);
     try {
       final picked = await _picker.pickImage(
-        source: cameraOnly ? ImageSource.camera : ImageSource.gallery,
+        source: ImageSource.gallery,
         imageQuality: 65,
         maxWidth: 1280,
         maxHeight: 1280,
       );
-      if (picked == null) return;
+      if (picked == null) {
+        await _clearPendingKind();
+        return;
+      }
       await _useImage(kind, File(picked.path));
     } catch (_) {
       _showCameraError();
     }
   }
 
-  Future<void> _recoverLostImage() async {
+  Future<void> _captureSelfie() async {
+    _pendingKind = 'selfie';
+    await _savePendingKind(_pendingKind);
+    if (!mounted) return;
+
+    final selfie = await Navigator.of(context).push<File>(
+      MaterialPageRoute(builder: (_) => const OnboardingSelfieCameraScreen()),
+    );
+    if (!mounted) return;
+    if (selfie == null) {
+      await _clearPendingKind();
+      return;
+    }
+    await _useImage('selfie', selfie);
+  }
+
+  /// Android may destroy the Flutter activity while the external camera app is
+  /// in the foreground. Keep both the chosen destination and existing files
+  /// outside widget memory so a restarted onboarding flow can resume safely.
+  Future<void> _restoreCaptureDraft() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final front = _storedFile(prefs.getString(_draftKey('front')));
+      final back = _storedFile(prefs.getString(_draftKey('back')));
+      final selfie = _storedFile(prefs.getString(_draftKey('selfie')));
+      _pendingKind = prefs.getString(_draftKey('pendingKind')) ?? 'front';
+
+      if (mounted && (front != null || back != null || selfie != null)) {
+        setState(() {
+          _front = front;
+          _back = back;
+          _selfie = selfie;
+        });
+      }
+
       final response = await _picker.retrieveLostData();
+      if (response.exception != null) {
+        _showCameraError();
+        return;
+      }
       final image = response.files?.firstOrNull;
       if (image != null) await _useImage(_pendingKind, File(image.path));
     } catch (_) {
@@ -311,6 +357,42 @@ class _OnboardingCnhScreenState extends ConsumerState<OnboardingCnhScreen> {
           _selfie = file;
       }
     });
+    await _saveFile(kind, file.path);
+    await _clearPendingKind();
+  }
+
+  File? _storedFile(String? path) {
+    if (path == null || path.isEmpty) return null;
+    final file = File(path);
+    return file.existsSync() ? file : null;
+  }
+
+  String _draftKey(String field) =>
+      '$_draftPrefix.${widget.session.userId}.$field';
+
+  Future<void> _savePendingKind(String kind) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_draftKey('pendingKind'), kind);
+  }
+
+  Future<void> _clearPendingKind() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey('pendingKind'));
+  }
+
+  Future<void> _saveFile(String kind, String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_draftKey(kind), path);
+  }
+
+  Future<void> _clearCaptureDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_draftKey('front')),
+      prefs.remove(_draftKey('back')),
+      prefs.remove(_draftKey('selfie')),
+      prefs.remove(_draftKey('pendingKind')),
+    ]);
   }
 
   void _showCameraError() {
