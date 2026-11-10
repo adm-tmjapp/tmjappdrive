@@ -5,10 +5,9 @@ class OnboardingStatusData {
 
   factory OnboardingStatusData.fromJson(Map<String, dynamic> json) {
     return OnboardingStatusData(
-      onboardingStatus:
-          json["onboardingStatus"] != null
-              ? OnboardingStatus.fromJson(json["onboardingStatus"])
-              : null,
+      onboardingStatus: json["onboardingStatus"] != null
+          ? OnboardingStatus.fromJson(json["onboardingStatus"])
+          : null,
     );
   }
 
@@ -31,40 +30,49 @@ class OnboardingStatus {
   });
 
   factory OnboardingStatus.fromJson(Map<String, dynamic> json) {
-    final rawStatus = _normalizedStatus(json['status'] ?? json['state']);
+    var nested = json;
+    for (var index = 0; index < 3; index++) {
+      final unwrapped =
+          _mapValue(nested['onboardingStatus']) ??
+          _mapValue(nested['onboarding_status']) ??
+          _mapValue(nested['data']);
+      if (unwrapped == null) break;
+      nested = unwrapped;
+    }
+    final rawStatus = _normalizedStatus(nested['status'] ?? nested['state']);
     final completed =
         _asBool(
-          json["isCompleted"] ?? json["is_completed"] ?? json['completed'],
+          nested["isCompleted"] ??
+              nested["is_completed"] ??
+              nested['completed'],
         ) ??
         _statusIsCompleted(rawStatus);
     final underReview =
         _asBool(
-          json["isUnderReview"] ??
-              json["is_under_review"] ??
-              json['underReview'] ??
-              json['under_review'],
+          nested["isUnderReview"] ??
+              nested["is_under_review"] ??
+              nested['underReview'] ??
+              nested['under_review'],
         ) ??
         _statusIsReviewing(rawStatus);
     final canDrive =
-        _asBool(json["canDrive"] ?? json["can_drive"] ?? json['approved']) ??
+        _asBool(
+          nested["canDrive"] ?? nested["can_drive"] ?? nested['approved'],
+        ) ??
         _statusIsCompleted(rawStatus);
+
+    final stepsValue =
+        nested["steps"] ??
+        nested['onboardingSteps'] ??
+        nested['onboarding_steps'];
 
     return OnboardingStatus(
       isCompleted: completed,
       isUnderReview: underReview,
       canDrive: canDrive,
-      steps:
-          (json["steps"] ?? json['onboardingSteps'] ?? json['onboarding_steps'])
-                  is Map
-              ? Steps.fromJson(
-                Map<String, dynamic>.from(
-                  (json["steps"] ??
-                          json['onboardingSteps'] ??
-                          json['onboarding_steps'])
-                      as Map,
-                ),
-              )
-              : null,
+      steps: stepsValue is Map
+          ? Steps.fromJson(Map<String, dynamic>.from(stepsValue))
+          : null,
     );
   }
 
@@ -97,12 +105,16 @@ class Steps {
 
   factory Steps.fromJson(Map<String, dynamic> json) {
     return Steps(
-      profilePhoto: _step(json["profilePhoto"] ?? json["profile_photo"]),
-      email: _step(json["email"]),
-      phone: _step(json["phone"]),
-      documents: _step(json["documents"]),
+      profilePhoto: _step(
+        json["profilePhoto"] ?? json["profile_photo"] ?? json["profile"],
+      ),
+      email: _step(json["email"] ?? json["emailVerification"]),
+      phone: _step(json["phone"] ?? json["phoneVerification"]),
+      documents: _step(json["documents"] ?? json["cnh"] ?? json["license"]),
       vehicle: _step(json["vehicle"]),
-      vehiclePhotos: _step(json["vehiclePhotos"] ?? json["vehicle_photos"]),
+      vehiclePhotos: _step(
+        json["vehiclePhotos"] ?? json["vehicle_photos"] ?? json["photos"],
+      ),
     );
   }
 
@@ -125,8 +137,10 @@ class StepStatus {
   StepStatus({this.completed, this.underReview});
 
   factory StepStatus.fromJson(Map<String, dynamic> json) {
-    final rawStatus =
-        (json["status"] ?? json["state"] ?? "").toString().trim().toLowerCase();
+    final rawStatus = (json["status"] ?? json["state"] ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
     return StepStatus(
       completed:
           _asBool(json["completed"] ?? json["isCompleted"]) ??
@@ -185,6 +199,11 @@ StepStatus? _step(dynamic value) {
       }.contains(normalized),
     );
   }
+  return null;
+}
+
+Map<String, dynamic>? _mapValue(dynamic value) {
+  if (value is Map) return Map<String, dynamic>.from(value);
   return null;
 }
 

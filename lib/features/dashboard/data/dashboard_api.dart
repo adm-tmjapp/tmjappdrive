@@ -67,8 +67,9 @@ class DashboardApi {
     final uri = Uri.parse('${_baseApi.baseUrl}v2/driver/availability');
     final headers = await _baseApi.getHeaders();
     final body = jsonEncode(<String, String>{
-      'availability':
-          availability == DriverAvailability.online ? 'ONLINE' : 'OFFLINE',
+      'availability': availability == DriverAvailability.online
+          ? 'ONLINE'
+          : 'OFFLINE',
     });
 
     _logRequest(method: 'PATCH', uri: uri, headers: headers, body: body);
@@ -154,10 +155,10 @@ class DashboardApi {
     final body = _decodeBody(response.body);
     final status = response.statusCode;
 
-    if (status == 200 || status == 201) {
+    if (status >= 200 && status < 300) {
       final payload = body['data'];
-      if (payload is Map<String, dynamic>) {
-        return payload;
+      if (payload is Map) {
+        return Map<String, dynamic>.from(payload);
       }
       return body;
     }
@@ -186,7 +187,9 @@ class DashboardApi {
   }
 
   String _errorMessage(Map<String, dynamic> body, String fallbackError) {
-    final message = body['message']?.toString();
+    final data = body['data'];
+    final nestedMessage = data is Map ? data['message']?.toString() : null;
+    final message = body['message']?.toString() ?? nestedMessage;
     if (message != null && message.trim().isNotEmpty) {
       return message;
     }

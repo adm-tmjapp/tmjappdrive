@@ -98,4 +98,25 @@ void main() {
     expect(status.steps?.profilePhoto?.completed, isTrue);
     expect(status.steps?.email?.completed, isTrue);
   });
+
+  test('desembrulha resposta aninhada da API após aprovação', () {
+    final status = OnboardingStatus.fromJson({
+      'data': {
+        'onboardingStatus': {
+          'status': 'APPROVED',
+          'steps': {
+            'profile': 'APPROVED',
+            'cnh': {'status': 'APPROVED'},
+            'photos': {'status': 'APPROVED'},
+          },
+        },
+      },
+    });
+
+    expect(status.isCompleted, isTrue);
+    expect(status.canDrive, isTrue);
+    expect(status.steps?.profilePhoto?.completed, isTrue);
+    expect(status.steps?.documents?.completed, isTrue);
+    expect(status.steps?.vehiclePhotos?.completed, isTrue);
+  });
 }

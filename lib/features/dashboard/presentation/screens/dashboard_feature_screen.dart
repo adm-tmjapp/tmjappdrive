@@ -73,10 +73,9 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
           content: SingleChildScrollView(
             child: _NewRequestCard(
               ride: ride,
-              onAccept:
-                  () => closeAnd(() {
-                    unawaited(controller.acceptRide(ride.id));
-                  }),
+              onAccept: () => closeAnd(() {
+                unawaited(controller.acceptRide(ride.id));
+              }),
               onReject: () => closeAnd(() => controller.rejectRide(ride.id)),
               onExpire: () => closeAnd(() => controller.rejectRide(ride.id)),
             ),
@@ -272,12 +271,12 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
                         else
                           _NewRequestCard(
                             ride: featuredRide,
-                            onAccept:
-                                () => controller.acceptRide(featuredRide.id),
-                            onReject:
-                                () => controller.rejectRide(featuredRide.id),
-                            onExpire:
-                                () => controller.rejectRide(featuredRide.id),
+                            onAccept: () =>
+                                controller.acceptRide(featuredRide.id),
+                            onReject: () =>
+                                controller.rejectRide(featuredRide.id),
+                            onExpire: () =>
+                                controller.rejectRide(featuredRide.id),
                           ),
                         const SizedBox(height: 24),
                       ],
@@ -390,14 +389,9 @@ class _HeaderRow extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(26),
-            child:
-                provider == null
-                    ? const Icon(
-                      Icons.person,
-                      color: Color(0xFF18412F),
-                      size: 36,
-                    )
-                    : Image(image: provider, fit: BoxFit.cover),
+            child: provider == null
+                ? const Icon(Icons.person, color: Color(0xFF18412F), size: 36)
+                : Image(image: provider, fit: BoxFit.cover),
           ),
         ),
         const SizedBox(width: 14),
@@ -435,12 +429,11 @@ class _HeaderRow extends StatelessWidget {
               IconButton(
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-                onPressed:
-                    () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => const NotificationsScreen(),
-                      ),
-                    ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const NotificationsScreen(),
+                  ),
+                ),
                 icon: const Icon(
                   Icons.notifications_none_outlined,
                   color: Colors.white,
@@ -520,32 +513,30 @@ class _StatusCard extends StatelessWidget {
               height: 32,
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color:
-                    isOnline
-                        ? const Color(0xFF5C0C3A)
-                        : const Color(0xFF2A2A2A),
+                color: isOnline
+                    ? const Color(0xFF5C0C3A)
+                    : const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(
-                  color:
-                      isOnline
-                          ? const Color(0xFF7F2057)
-                          : const Color(0xFF475569),
+                  color: isOnline
+                      ? const Color(0xFF7F2057)
+                      : const Color(0xFF475569),
                   width: 1.5,
                 ),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
-                alignment:
-                    isOnline ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: isOnline
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Container(
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color:
-                        isOnline
-                            ? const Color(0xFFC62F78)
-                            : const Color(0xFF94A3B8),
+                    color: isOnline
+                        ? const Color(0xFFC62F78)
+                        : const Color(0xFF94A3B8),
                   ),
                 ),
               ),
@@ -677,14 +668,12 @@ class _NewRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final origin =
-        ride.pickupAddress.isNotEmpty
-            ? ride.pickupAddress
-            : _origin(ride.route);
-    final destination =
-        ride.dropoffAddress.isNotEmpty
-            ? ride.dropoffAddress
-            : _destination(ride.route);
+    final origin = ride.pickupAddress.isNotEmpty
+        ? ride.pickupAddress
+        : _origin(ride.route);
+    final destination = ride.dropoffAddress.isNotEmpty
+        ? ride.dropoffAddress
+        : _destination(ride.route);
     final distanceLabel = _distance(ride);
 
     return Column(
@@ -975,13 +964,13 @@ class _AcceptedRideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final destination =
-        ride.dropoffAddress.isNotEmpty
-            ? ride.dropoffAddress
-            : _destination(ride.route);
+    final destination = ride.dropoffAddress.isNotEmpty
+        ? ride.dropoffAddress
+        : _destination(ride.route);
     final pickupDistance = '${_distance(ride)} KM PARA O EMBARQUE';
-    final passengerLabel =
-        ride.isPassenger ? 'Passageiro aguardando' : ride.type;
+    final passengerLabel = ride.isPassenger
+        ? 'Passageiro aguardando'
+        : ride.type;
     final etaLabel = ride.etaMin > 0 ? '${ride.etaMin} MIN' : '--';
 
     return Column(
@@ -1265,10 +1254,9 @@ class _DispatchCountdownState extends State<_DispatchCountdown> {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        _remaining.inSeconds <= 5
-            ? const Color(0xFFF97316)
-            : const Color(0xFFC62F78);
+    final color = _remaining.inSeconds <= 5
+        ? const Color(0xFFF97316)
+        : const Color(0xFFC62F78);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1555,16 +1543,18 @@ class _DashboardBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Android can render its gesture/navigation bar over the app.  Keep the
-    // interactive navigation items above that system inset on every device.
-    return SafeArea(
-      top: false,
-      child: Container(
+    // Paint the system inset as part of the bar, while keeping the controls
+    // inside the 80dp content area. This avoids Android's navigation bar
+    // covering the last row on gesture and three-button navigation devices.
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    return Container(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1013),
+        border: Border(top: BorderSide(color: Color(0xFF1E1E1E), width: 1)),
+      ),
+      child: SizedBox(
         height: 80,
-        decoration: const BoxDecoration(
-          color: Color(0xFF0F1013),
-          border: Border(top: BorderSide(color: Color(0xFF1E1E1E), width: 1)),
-        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [

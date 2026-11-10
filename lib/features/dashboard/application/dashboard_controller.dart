@@ -32,8 +32,8 @@ class DashboardController extends StateNotifier<DashboardState> {
         driverName: (name == null || name.trim().isEmpty) ? 'Motorista' : name,
         driverProfileImage:
             (profileImage == null || profileImage.trim().isEmpty)
-                ? null
-                : profileImage,
+            ? null
+            : profileImage,
       );
     } catch (_) {}
   }
@@ -77,10 +77,9 @@ class DashboardController extends StateNotifier<DashboardState> {
 
   Future<void> toggleAvailability() async {
     final current = state.availability;
-    final next =
-        current == DriverAvailability.online
-            ? DriverAvailability.offline
-            : DriverAvailability.online;
+    final next = current == DriverAvailability.online
+        ? DriverAvailability.offline
+        : DriverAvailability.online;
 
     state = state.copyWith(availability: next, clearError: true);
     try {
@@ -90,10 +89,13 @@ class DashboardController extends StateNotifier<DashboardState> {
         isOnline: updated == DriverAvailability.online,
       );
       await load();
+    } on DashboardApiException catch (error) {
+      await _realtimeService.updateOperationalState(isOnline: false);
+      state = state.copyWith(availability: current, error: error.message);
     } catch (_) {
       await _realtimeService.updateOperationalState(isOnline: false);
       state = state.copyWith(
-        availability: DriverAvailability.offline,
+        availability: current,
         error: serviceUnavailableMessage,
       );
     }
