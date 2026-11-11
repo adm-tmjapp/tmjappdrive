@@ -49,6 +49,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Precisamos acessar a camera para capturar sua foto e os documentos do onboarding.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use o Face ID para entrar com segurança na sua conta de motorista.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Precisamos da sua localizacao para distribuir corridas proximas enquanto voce estiver online.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/dashboard_providers.dart';
+import '../../application/dashboard_controller.dart';
 import '../../domain/dashboard_models.dart';
+import 'package:tmjappdrive/screens/auth/sign_in_screen.dart';
 import 'dashboard_active_ride_screen.dart';
 import '../../../profile/presentation/screens/profile_feature_screen.dart';
 import '../../../ride_history/presentation/screens/ride_history_screen.dart';
@@ -73,9 +75,10 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
           content: SingleChildScrollView(
             child: _NewRequestCard(
               ride: ride,
-              onAccept: () => closeAnd(() {
-                unawaited(controller.acceptRide(ride.id));
-              }),
+              onAccept:
+                  () => closeAnd(() {
+                    unawaited(controller.acceptRide(ride.id));
+                  }),
               onReject: () => closeAnd(() => controller.rejectRide(ride.id)),
               onExpire: () => closeAnd(() => controller.rejectRide(ride.id)),
             ),
@@ -119,7 +122,6 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
 
       final newError = next.error;
       if (newError == null) return;
-      if (newError != 'Serviço indisponível') return;
       if (_isShowingServiceAlert) return;
       if (newError == previous?.error) return;
 
@@ -129,11 +131,25 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
         builder: (dialogContext) {
           return AlertDialog(
             title: const Text('Aviso'),
-            content: const Text('Serviço indisponível'),
+            content: Text(newError),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  if (newError == DashboardController.sessionExpiredMessage ||
+                      newError == DashboardController.driverNotFoundMessage) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const SignInScreen()),
+                      (_) => false,
+                    );
+                  }
+                },
+                child: Text(
+                  newError == DashboardController.sessionExpiredMessage ||
+                          newError == DashboardController.driverNotFoundMessage
+                      ? 'Entrar novamente'
+                      : 'OK',
+                ),
               ),
             ],
           );
@@ -271,12 +287,12 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
                         else
                           _NewRequestCard(
                             ride: featuredRide,
-                            onAccept: () =>
-                                controller.acceptRide(featuredRide.id),
-                            onReject: () =>
-                                controller.rejectRide(featuredRide.id),
-                            onExpire: () =>
-                                controller.rejectRide(featuredRide.id),
+                            onAccept:
+                                () => controller.acceptRide(featuredRide.id),
+                            onReject:
+                                () => controller.rejectRide(featuredRide.id),
+                            onExpire:
+                                () => controller.rejectRide(featuredRide.id),
                           ),
                         const SizedBox(height: 24),
                       ],
@@ -389,9 +405,14 @@ class _HeaderRow extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(26),
-            child: provider == null
-                ? const Icon(Icons.person, color: Color(0xFF18412F), size: 36)
-                : Image(image: provider, fit: BoxFit.cover),
+            child:
+                provider == null
+                    ? const Icon(
+                      Icons.person,
+                      color: Color(0xFF18412F),
+                      size: 36,
+                    )
+                    : Image(image: provider, fit: BoxFit.cover),
           ),
         ),
         const SizedBox(width: 14),
@@ -429,11 +450,12 @@ class _HeaderRow extends StatelessWidget {
               IconButton(
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationsScreen(),
-                  ),
-                ),
+                onPressed:
+                    () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationsScreen(),
+                      ),
+                    ),
                 icon: const Icon(
                   Icons.notifications_none_outlined,
                   color: Colors.white,
@@ -513,30 +535,32 @@ class _StatusCard extends StatelessWidget {
               height: 32,
               padding: const EdgeInsets.all(3),
               decoration: BoxDecoration(
-                color: isOnline
-                    ? const Color(0xFF5C0C3A)
-                    : const Color(0xFF2A2A2A),
+                color:
+                    isOnline
+                        ? const Color(0xFF5C0C3A)
+                        : const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(
-                  color: isOnline
-                      ? const Color(0xFF7F2057)
-                      : const Color(0xFF475569),
+                  color:
+                      isOnline
+                          ? const Color(0xFF7F2057)
+                          : const Color(0xFF475569),
                   width: 1.5,
                 ),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 200),
-                alignment: isOnline
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                alignment:
+                    isOnline ? Alignment.centerRight : Alignment.centerLeft,
                 child: Container(
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isOnline
-                        ? const Color(0xFFC62F78)
-                        : const Color(0xFF94A3B8),
+                    color:
+                        isOnline
+                            ? const Color(0xFFC62F78)
+                            : const Color(0xFF94A3B8),
                   ),
                 ),
               ),
@@ -668,12 +692,14 @@ class _NewRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final origin = ride.pickupAddress.isNotEmpty
-        ? ride.pickupAddress
-        : _origin(ride.route);
-    final destination = ride.dropoffAddress.isNotEmpty
-        ? ride.dropoffAddress
-        : _destination(ride.route);
+    final origin =
+        ride.pickupAddress.isNotEmpty
+            ? ride.pickupAddress
+            : _origin(ride.route);
+    final destination =
+        ride.dropoffAddress.isNotEmpty
+            ? ride.dropoffAddress
+            : _destination(ride.route);
     final distanceLabel = _distance(ride);
 
     return Column(
@@ -964,13 +990,13 @@ class _AcceptedRideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final destination = ride.dropoffAddress.isNotEmpty
-        ? ride.dropoffAddress
-        : _destination(ride.route);
+    final destination =
+        ride.dropoffAddress.isNotEmpty
+            ? ride.dropoffAddress
+            : _destination(ride.route);
     final pickupDistance = '${_distance(ride)} KM PARA O EMBARQUE';
-    final passengerLabel = ride.isPassenger
-        ? 'Passageiro aguardando'
-        : ride.type;
+    final passengerLabel =
+        ride.isPassenger ? 'Passageiro aguardando' : ride.type;
     final etaLabel = ride.etaMin > 0 ? '${ride.etaMin} MIN' : '--';
 
     return Column(
@@ -1254,9 +1280,10 @@ class _DispatchCountdownState extends State<_DispatchCountdown> {
 
   @override
   Widget build(BuildContext context) {
-    final color = _remaining.inSeconds <= 5
-        ? const Color(0xFFF97316)
-        : const Color(0xFFC62F78);
+    final color =
+        _remaining.inSeconds <= 5
+            ? const Color(0xFFF97316)
+            : const Color(0xFFC62F78);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

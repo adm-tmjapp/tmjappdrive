@@ -11,6 +11,12 @@ import '../../../utils/strings.dart';
 
 class DashboardController extends StateNotifier<DashboardState> {
   static const String serviceUnavailableMessage = 'Serviço indisponível';
+  static const String sessionExpiredMessage =
+      'Sua sessão expirou. Entre novamente para continuar.';
+  static const String driverNotFoundMessage =
+      'Seu cadastro de motorista não está disponível. Entre novamente ou procure o suporte.';
+  static const String driverNotActiveMessage =
+      'Seu cadastro ainda não está ativo ou aprovado para ficar online.';
 
   DashboardController(this._repository, this._realtimeService)
     : super(DashboardState.initial()) {
@@ -32,8 +38,8 @@ class DashboardController extends StateNotifier<DashboardState> {
         driverName: (name == null || name.trim().isEmpty) ? 'Motorista' : name,
         driverProfileImage:
             (profileImage == null || profileImage.trim().isEmpty)
-            ? null
-            : profileImage,
+                ? null
+                : profileImage,
       );
     } catch (_) {}
   }
@@ -65,6 +71,28 @@ class DashboardController extends StateNotifier<DashboardState> {
       await _realtimeService.updateOperationalState(
         isOnline: snapshot.availability == DriverAvailability.online,
       );
+    } on DashboardApiException catch (error) {
+      await _realtimeService.updateOperationalState(isOnline: false);
+      if (error.statusCode == 401 ||
+          error.statusCode == 403 ||
+          error.code == 'DRIVER_NOT_FOUND') {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(Strings.prefToken);
+        state = state.copyWith(
+          isLoading: false,
+          availability: DriverAvailability.offline,
+          error:
+              error.code == 'DRIVER_NOT_FOUND'
+                  ? driverNotFoundMessage
+                  : sessionExpiredMessage,
+        );
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        availability: DriverAvailability.offline,
+        error: serviceUnavailableMessage,
+      );
     } catch (_) {
       await _realtimeService.updateOperationalState(isOnline: false);
       state = state.copyWith(
@@ -77,9 +105,10 @@ class DashboardController extends StateNotifier<DashboardState> {
 
   Future<void> toggleAvailability() async {
     final current = state.availability;
-    final next = current == DriverAvailability.online
-        ? DriverAvailability.offline
-        : DriverAvailability.online;
+    final next =
+        current == DriverAvailability.online
+            ? DriverAvailability.offline
+            : DriverAvailability.online;
 
     state = state.copyWith(availability: next, clearError: true);
     try {
@@ -91,7 +120,13 @@ class DashboardController extends StateNotifier<DashboardState> {
       await load();
     } on DashboardApiException catch (error) {
       await _realtimeService.updateOperationalState(isOnline: false);
-      state = state.copyWith(availability: current, error: error.message);
+      state = state.copyWith(
+        availability: current,
+        error:
+            error.code == 'DRIVER_NOT_ACTIVE'
+                ? driverNotActiveMessage
+                : error.message,
+      );
     } catch (_) {
       await _realtimeService.updateOperationalState(isOnline: false);
       state = state.copyWith(

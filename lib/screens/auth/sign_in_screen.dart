@@ -1,7 +1,10 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tmjappdrive/features/onboarding/presentation/screens/onboarding_flow_screen.dart';
@@ -26,14 +29,25 @@ class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _localAuth = LocalAuthentication();
+  final _secureStorage = const FlutterSecureStorage();
 
   bool _showPassword = false;
+  bool _biometricAvailable = false;
+  bool _biometricLoading = false;
+  BiometricType? _biometricType;
+  String? _storedEmail;
+  String? _storedPassword;
   String _appVersion = 'Versão carregando...';
+
+  static const _secureEmailKey = 'tmjappdrive.login.email';
+  static const _securePasswordKey = 'tmjappdrive.login.password';
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
+    _loadBiometricAvailability();
     _loadAppVersion();
   }
 
@@ -47,13 +61,60 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
+    var email = await _secureStorage.read(key: _secureEmailKey);
+    var password = await _secureStorage.read(key: _securePasswordKey);
+
+    // Migrate the legacy plaintext values once, then remove them.
+    final legacyEmail = prefs.getString(Strings.prefEmail);
+    final legacyPassword = prefs.getString(Strings.prefPassword);
+    if ((email == null || email.isEmpty) && legacyEmail != null) {
+      email = legacyEmail;
+    }
+    if ((password == null || password.isEmpty) && legacyPassword != null) {
+      password = legacyPassword;
+    }
+    if (email != null &&
+        email.isNotEmpty &&
+        password != null &&
+        password.isNotEmpty) {
+      try {
+        await _secureStorage.write(key: _secureEmailKey, value: email);
+        await _secureStorage.write(key: _securePasswordKey, value: password);
+        await prefs.remove(Strings.prefEmail);
+        await prefs.remove(Strings.prefPassword);
+      } catch (_) {
+        // A regular login remains available if secure storage is unavailable.
+      }
+    }
+
     if (!mounted) {
       return;
     }
     setState(() {
-      _emailController.text = prefs.getString(Strings.prefEmail) ?? '';
-      _passwordController.text = prefs.getString(Strings.prefPassword) ?? '';
+      _emailController.text = email ?? '';
+      _passwordController.text = password ?? '';
+      _storedEmail = email;
+      _storedPassword = password;
     });
+  }
+
+  Future<void> _loadBiometricAvailability() async {
+    try {
+      if (!await _localAuth.canCheckBiometrics) return;
+      final available = await _localAuth.getAvailableBiometrics();
+      if (!mounted) return;
+      setState(() {
+        _biometricAvailable = available.isNotEmpty;
+        _biometricType =
+            available.contains(BiometricType.face)
+                ? BiometricType.face
+                : available.isNotEmpty
+                ? available.first
+                : null;
+      });
+    } catch (_) {
+      // The login form remains usable on devices without enrolled biometrics.
+    }
   }
 
   @override
@@ -70,10 +131,6 @@ class _SignInScreenState extends State<SignInScreen> {
     }
 
     final loginBloc = context.read<LoginBloc>();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(Strings.prefEmail, _emailController.text.trim());
-    await prefs.setString(Strings.prefPassword, _passwordController.text);
-
     loginBloc.add(
       LoginRequested(
         email: _emailController.text.trim(),
@@ -82,13 +139,112 @@ class _SignInScreenState extends State<SignInScreen> {
     );
   }
 
+  Future<void> _loginWithBiometrics(BuildContext context) async {
+    if (!_canUseBiometricLogin || _biometricLoading) return;
+
+    setState(() => _biometricLoading = true);
+    try {
+      final authenticated = await _localAuth.authenticate(
+        localizedReason: 'Confirme sua identidade para entrar no TMJ Motorista',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          useErrorDialogs: true,
+          stickyAuth: true,
+        ),
+      );
+      if (!authenticated || !mounted) return;
+
+      final email = await _secureStorage.read(key: _secureEmailKey);
+      final password = await _secureStorage.read(key: _securePasswordKey);
+      if (email == null ||
+          email.isEmpty ||
+          password == null ||
+          password.isEmpty) {
+        _showMessage(
+          'Entre com e-mail e senha uma vez para ativar a biometria.',
+        );
+        return;
+      }
+      if (!context.mounted) return;
+      context.read<LoginBloc>().add(
+        LoginRequested(email: email, password: password),
+      );
+    } on PlatformException catch (error) {
+      if (mounted) {
+        _showMessage(_biometricErrorMessage(error.code));
+      }
+    } finally {
+      if (mounted) setState(() => _biometricLoading = false);
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    try {
+      await _secureStorage.write(
+        key: _secureEmailKey,
+        value: _emailController.text.trim(),
+      );
+      await _secureStorage.write(
+        key: _securePasswordKey,
+        value: _passwordController.text,
+      );
+      _storedEmail = _emailController.text.trim();
+      _storedPassword = _passwordController.text;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(Strings.prefEmail);
+      await prefs.remove(Strings.prefPassword);
+    } catch (_) {
+      // Do not block a successful login if secure storage is unavailable.
+    }
+  }
+
+  bool get _canUseBiometricLogin =>
+      _biometricAvailable &&
+      _storedEmail != null &&
+      _storedPassword != null &&
+      _emailController.text.trim() == _storedEmail &&
+      _passwordController.text == _storedPassword;
+
+  IconData get _biometricIcon =>
+      _biometricType == BiometricType.face
+          ? Icons.face_retouching_natural
+          : Icons.fingerprint;
+
+  String get _biometricLabel =>
+      _biometricType == BiometricType.face
+          ? 'Entrar com Face ID'
+          : 'Entrar com biometria';
+
+  String _biometricErrorMessage(String code) {
+    switch (code) {
+      case 'NotEnrolled':
+      case 'notEnrolled':
+        return 'Nenhuma biometria cadastrada neste aparelho.';
+      case 'LockedOut':
+      case 'lockedOut':
+      case 'PermanentlyLockedOut':
+      case 'permanentlyLockedOut':
+        return 'Biometria temporariamente bloqueada. Use sua senha.';
+      default:
+        return 'Não foi possível validar sua biometria. Tente novamente.';
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => LoginBloc(authRepository: AuthRepository()),
       child: BlocConsumer<LoginBloc, LoginState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is LoginSuccess) {
+            await _saveCredentials();
+            if (!context.mounted) return;
             final onboarding = state.responseLogin.onboardingStatus;
             Navigator.pushReplacement(
               context,
@@ -293,6 +449,45 @@ class _SignInScreenState extends State<SignInScreen> {
                                           ),
                                 ),
                               ),
+                              if (_canUseBiometricLogin) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 52,
+                                  child: OutlinedButton.icon(
+                                    onPressed:
+                                        isLoading || _biometricLoading
+                                            ? null
+                                            : () =>
+                                                _loginWithBiometrics(context),
+                                    icon:
+                                        _biometricLoading
+                                            ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: _accentColor,
+                                              ),
+                                            )
+                                            : Icon(_biometricIcon),
+                                    label: Text(_biometricLabel),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: _accentColor,
+                                      side: const BorderSide(
+                                        color: _accentColor,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      textStyle: GoogleFonts.inter(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 40),
                               Center(
                                 child: RichText(
@@ -380,6 +575,7 @@ class _SignInScreenState extends State<SignInScreen> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          onChanged: (_) => setState(() {}),
           keyboardType: keyboardType,
           obscureText: obscureText,
           validator: validator,
