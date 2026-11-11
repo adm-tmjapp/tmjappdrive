@@ -80,28 +80,15 @@ class _SplashScreenState extends State<SplashScreen>
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: _accentColor.withValues(alpha: 0.06),
+                          color: Colors.black,
                           borderRadius: BorderRadius.circular(28),
-                          border: Border.all(
-                            color: _accentColor.withValues(alpha: 0.12),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _accentColor.withValues(alpha: 0.20),
-                              blurRadius: 30,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                          border: Border.all(color: const Color(0xFF2A2A2A)),
                         ),
                         child: Container(
                           width: 96,
                           height: 96,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [_accentColor, Color(0x66C62F78)],
-                            ),
+                            color: Colors.black,
                             borderRadius: BorderRadius.circular(22),
                           ),
                           child: Image.asset(

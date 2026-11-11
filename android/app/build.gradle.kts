@@ -84,6 +84,10 @@ android {
                 }
         }
     }
+
+    firebaseCrashlytics {
+        mappingFileUploadEnabled = true
+    }
 }
 
 dependencies {
