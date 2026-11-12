@@ -82,6 +82,35 @@ class DashboardRealtimeService {
     await _startLocationTracking();
   }
 
+  /// Valida os pré-requisitos antes de confirmar que o motorista ficará online.
+  /// Assim o app não mostra ONLINE quando não conseguirá enviar localização.
+  Future<String?> checkOnlineRequirements() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return 'Ative o serviço de localização para ficar online.';
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        return 'Permita o acesso à localização nos Ajustes para ficar online.';
+      }
+      if (permission == LocationPermission.denied) {
+        return 'Permita o acesso à localização para ficar online.';
+      }
+      return null;
+    } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'online_requirements_check_failed',
+      );
+      return 'Não foi possível validar as permissões de localização.';
+    }
+  }
+
   Future<void> dispose() async {
     await _stopLocationTracking();
     await _tokenRefreshSubscription?.cancel();

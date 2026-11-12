@@ -127,6 +127,18 @@ class DashboardController extends StateNotifier<DashboardState> {
             : DriverAvailability.online;
 
     state = state.copyWith(availability: next, clearError: true);
+    if (next == DriverAvailability.online) {
+      final requirementsError =
+          await _realtimeService.checkOnlineRequirements();
+      if (requirementsError != null) {
+        await AppObservability.event(
+          'driver_online_blocked_by_permission',
+          parameters: {'reason': requirementsError},
+        );
+        state = state.copyWith(availability: current, error: requirementsError);
+        return;
+      }
+    }
     try {
       final updated = await _repository.updateAvailability(next);
       state = state.copyWith(availability: updated);
@@ -152,7 +164,9 @@ class DashboardController extends StateNotifier<DashboardState> {
         availability: current,
         error:
             error.code == 'DRIVER_NOT_ACTIVE'
-                ? driverNotActiveMessage
+                ? (error.message.trim().isEmpty
+                    ? driverNotActiveMessage
+                    : error.message)
                 : error.message,
       );
     } catch (_) {
