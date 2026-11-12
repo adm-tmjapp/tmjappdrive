@@ -131,7 +131,7 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
                                 unawaited(
                                   AppObservability.recordError(
                                     error,
-                                    stackTrace,
+                                    stackTrace ?? StackTrace.current,
                                     reason: 'passenger_photo_load_failed',
                                   ),
                                 );

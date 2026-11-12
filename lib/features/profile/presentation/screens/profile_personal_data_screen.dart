@@ -6,7 +6,7 @@ import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../application/profile_providers.dart';
 import '../../domain/profile_models.dart';
-import '../../../observability/app_observability.dart';
+import '../../../../observability/app_observability.dart';
 import 'profile_edit_address_screen.dart';
 
 class ProfilePersonalDataScreen extends ConsumerStatefulWidget {
@@ -396,7 +396,7 @@ class _ProfilePhoto extends StatelessWidget {
           unawaited(
             AppObservability.recordError(
               error,
-              stackTrace,
+              stackTrace ?? StackTrace.current,
               reason: 'profile_photo_load_failed',
             ),
           );
