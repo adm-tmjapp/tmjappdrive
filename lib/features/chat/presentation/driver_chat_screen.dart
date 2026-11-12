@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/ride_chat_api.dart';
+import '../../../observability/app_observability.dart';
 
 class DriverChatScreen extends StatefulWidget {
   const DriverChatScreen({
@@ -117,14 +118,27 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundImage:
-                      (widget.passengerPhotoUrl?.isNotEmpty ?? false)
-                          ? NetworkImage(widget.passengerPhotoUrl!)
-                          : null,
                   child:
                       (widget.passengerPhotoUrl?.isEmpty ?? true)
                           ? const Icon(Icons.person)
-                          : null,
+                          : ClipOval(
+                            child: Image.network(
+                              widget.passengerPhotoUrl!,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, error, stackTrace) {
+                                unawaited(
+                                  AppObservability.recordError(
+                                    error,
+                                    stackTrace,
+                                    reason: 'passenger_photo_load_failed',
+                                  ),
+                                );
+                                return const Icon(Icons.person);
+                              },
+                            ),
+                          ),
                 ),
                 const SizedBox(width: 12),
                 Text(

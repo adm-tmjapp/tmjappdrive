@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../../application/profile_providers.dart';
 import '../../domain/profile_models.dart';
+import '../../../observability/app_observability.dart';
 import 'profile_edit_address_screen.dart';
 
 class ProfilePersonalDataScreen extends ConsumerStatefulWidget {
@@ -93,24 +96,9 @@ class _ProfilePersonalDataScreenState
                       child: CircleAvatar(
                         radius: 56,
                         backgroundColor: _card,
-                        backgroundImage:
-                            (widget.profile.profilePhotoUrl != null &&
-                                    widget.profile.profilePhotoUrl!
-                                        .trim()
-                                        .isNotEmpty)
-                                ? NetworkImage(widget.profile.profilePhotoUrl!)
-                                : null,
-                        child:
-                            (widget.profile.profilePhotoUrl == null ||
-                                    widget.profile.profilePhotoUrl!
-                                        .trim()
-                                        .isEmpty)
-                                ? const Icon(
-                                  Icons.person,
-                                  color: Colors.white54,
-                                  size: 46,
-                                )
-                                : null,
+                        child: _ProfilePhoto(
+                          url: widget.profile.profilePhotoUrl,
+                        ),
                       ),
                     ),
                     Container(
@@ -382,6 +370,39 @@ class _FieldCard extends StatelessWidget {
         const SizedBox(height: 8),
         child,
       ],
+    );
+  }
+}
+
+class _ProfilePhoto extends StatelessWidget {
+  const _ProfilePhoto({required this.url});
+
+  final String? url;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = url?.trim() ?? '';
+    if (value.isEmpty) {
+      return const Icon(Icons.person, color: Colors.white54, size: 46);
+    }
+
+    return ClipOval(
+      child: Image.network(
+        value,
+        fit: BoxFit.cover,
+        width: 112,
+        height: 112,
+        errorBuilder: (_, error, stackTrace) {
+          unawaited(
+            AppObservability.recordError(
+              error,
+              stackTrace,
+              reason: 'profile_photo_load_failed',
+            ),
+          );
+          return const Icon(Icons.person, color: Colors.white54, size: 46);
+        },
+      ),
     );
   }
 }

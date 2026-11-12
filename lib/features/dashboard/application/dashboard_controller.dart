@@ -8,6 +8,7 @@ import '../domain/dashboard_repository.dart';
 import 'dashboard_realtime_service.dart';
 import 'dashboard_state.dart';
 import '../../../utils/strings.dart';
+import '../../../observability/app_observability.dart';
 
 class DashboardController extends StateNotifier<DashboardState> {
   static const String serviceUnavailableMessage = 'Serviço indisponível';
@@ -68,10 +69,21 @@ class DashboardController extends StateNotifier<DashboardState> {
         lastUpdatedAt: DateTime.now(),
         clearError: true,
       );
+      await AppObservability.event(
+        'dashboard_load_success',
+        parameters: {'period': state.filters.period.name},
+      );
       await _realtimeService.updateOperationalState(
         isOnline: snapshot.availability == DriverAvailability.online,
       );
     } on DashboardApiException catch (error) {
+      await AppObservability.event(
+        'dashboard_load_failed',
+        parameters: {
+          'status_code': error.statusCode ?? 0,
+          if (error.code != null) 'error_code': error.code!,
+        },
+      );
       await _realtimeService.updateOperationalState(isOnline: false);
       if (error.statusCode == 401 ||
           error.statusCode == 403 ||
@@ -94,6 +106,10 @@ class DashboardController extends StateNotifier<DashboardState> {
         error: serviceUnavailableMessage,
       );
     } catch (_) {
+      await AppObservability.event(
+        'dashboard_load_failed',
+        parameters: {'reason': 'unexpected_error'},
+      );
       await _realtimeService.updateOperationalState(isOnline: false);
       state = state.copyWith(
         isLoading: false,
@@ -114,11 +130,23 @@ class DashboardController extends StateNotifier<DashboardState> {
     try {
       final updated = await _repository.updateAvailability(next);
       state = state.copyWith(availability: updated);
+      await AppObservability.event(
+        updated == DriverAvailability.online
+            ? 'driver_online_success'
+            : 'driver_offline_success',
+      );
       await _realtimeService.updateOperationalState(
         isOnline: updated == DriverAvailability.online,
       );
       await load();
     } on DashboardApiException catch (error) {
+      await AppObservability.event(
+        'driver_online_failed',
+        parameters: {
+          'status_code': error.statusCode ?? 0,
+          if (error.code != null) 'error_code': error.code!,
+        },
+      );
       await _realtimeService.updateOperationalState(isOnline: false);
       state = state.copyWith(
         availability: current,
@@ -128,6 +156,10 @@ class DashboardController extends StateNotifier<DashboardState> {
                 : error.message,
       );
     } catch (_) {
+      await AppObservability.event(
+        'driver_online_failed',
+        parameters: {'reason': 'unexpected_error'},
+      );
       await _realtimeService.updateOperationalState(isOnline: false);
       state = state.copyWith(
         availability: current,
@@ -160,9 +192,20 @@ class DashboardController extends StateNotifier<DashboardState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _repository.acceptRide(rideId);
+      await AppObservability.event(
+        'ride_accept_success',
+        parameters: {'ride_id_present': true},
+      );
       state = state.copyWith(clearLiveRideRequest: true);
       await load();
     } on DashboardApiException catch (error) {
+      await AppObservability.event(
+        'ride_accept_failed',
+        parameters: {
+          'status_code': error.statusCode ?? 0,
+          if (error.code != null) 'error_code': error.code!,
+        },
+      );
       if (error.code == 'RIDE_NOT_AVAILABLE' || error.statusCode == 409) {
         state = state.copyWith(
           isLoading: false,
@@ -180,6 +223,10 @@ class DashboardController extends StateNotifier<DashboardState> {
         clearLiveRideRequest: true,
       );
     } catch (_) {
+      await AppObservability.event(
+        'ride_accept_failed',
+        parameters: {'reason': 'unexpected_error'},
+      );
       state = state.copyWith(
         isLoading: false,
         availability: DriverAvailability.offline,

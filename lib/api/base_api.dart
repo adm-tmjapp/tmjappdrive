@@ -4,6 +4,7 @@ import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_env.dart';
+import '../observability/app_observability.dart';
 import '../utils/strings.dart';
 
 class BaseApi extends BaseClient {
@@ -58,7 +59,52 @@ class BaseApi extends BaseClient {
       if (_token != null) 'Authorization': 'Bearer $_token',
       'Accept': 'application/json',
     });
-    return client.send(request);
+
+    final startedAt = DateTime.now();
+    final method = request.method;
+    final uri = request.url;
+    AppObservability.breadcrumb(
+      'HTTP $method ${uri.path}',
+      context: <String, Object?>{'http_method': method, 'http_path': uri.path},
+    );
+
+    try {
+      final response = await client.send(request);
+      final durationMs = DateTime.now().difference(startedAt).inMilliseconds;
+      final requestId = response.headers['x-request-id'];
+      AppObservability.breadcrumb(
+        'HTTP $method ${uri.path} status=${response.statusCode} durationMs=$durationMs',
+        context: <String, Object?>{
+          'http_method': method,
+          'http_path': uri.path,
+          'http_status': response.statusCode,
+          'http_duration_ms': durationMs,
+          if (requestId != null) 'request_id': requestId,
+        },
+      );
+      if (response.statusCode >= 400) {
+        await AppObservability.recordHttpFailure(
+          method: method,
+          uri: uri,
+          statusCode: response.statusCode,
+          requestId: requestId,
+        );
+      }
+      return response;
+    } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'api_network_error',
+        context: <String, Object?>{
+          'http_method': method,
+          'http_path': uri.path,
+          'http_duration_ms':
+              DateTime.now().difference(startedAt).inMilliseconds,
+        },
+      );
+      rethrow;
+    }
   }
 
   Future<void> initData() async {

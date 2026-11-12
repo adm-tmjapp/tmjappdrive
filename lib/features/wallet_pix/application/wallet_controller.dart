@@ -4,6 +4,7 @@ import '../data/wallet_api.dart';
 import '../data/wallet_repository_impl.dart';
 import '../domain/wallet_models.dart';
 import '../domain/wallet_repository.dart';
+import '../../../observability/app_observability.dart';
 
 class WalletController extends StateNotifier<WalletState> {
   WalletController(this._repository) : super(WalletState.initial()) {
@@ -35,6 +36,10 @@ class WalletController extends StateNotifier<WalletState> {
         clearError: true,
       );
     } catch (e) {
+      await AppObservability.event(
+        'wallet_load_failed',
+        parameters: {'period': state.period.name},
+      );
       state = state.copyWith(
         isLoading: false,
         error: _errorMessage(e, 'Falha ao carregar carteira.'),
@@ -100,6 +105,10 @@ class WalletController extends StateNotifier<WalletState> {
 
       return true;
     } catch (e) {
+      await AppObservability.event(
+        'wallet_transfer_failed',
+        parameters: {'reason': 'request_failed'},
+      );
       state = state.copyWith(
         isSubmitting: false,
         error: _errorMessage(e, 'Nao foi possivel concluir a transferencia.'),

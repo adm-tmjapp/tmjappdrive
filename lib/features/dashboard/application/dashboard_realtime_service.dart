@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../data/dashboard_realtime_api.dart';
 import '../domain/dashboard_models.dart';
 import '../../../services/ride_alert_notification_service.dart';
+import '../../../observability/app_observability.dart';
 
 typedef NewRideRequestCallback = void Function(RideCardItem ride);
 
@@ -60,6 +61,11 @@ class DashboardRealtimeService {
         _handleRemoteMessage(initialMessage);
       }
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'push_initialization_failed',
+      );
       debugPrint(
         '[DashboardRealtimeService] initialization failed: $error\n$stackTrace',
       );
@@ -107,6 +113,12 @@ class DashboardRealtimeService {
       );
       debugPrint('[DashboardRealtimeService] FCM token registered');
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'push_token_registration_failed',
+        context: <String, Object?>{'platform': _platformLabel},
+      );
       debugPrint(
         '[DashboardRealtimeService] register token failed: $error\n$stackTrace',
       );
@@ -136,6 +148,11 @@ class DashboardRealtimeService {
         (_) => _captureAndSendCurrentPosition(),
       );
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'location_tracking_start_failed',
+      );
       debugPrint(
         '[DashboardRealtimeService] start tracking failed: $error\n$stackTrace',
       );
@@ -170,6 +187,11 @@ class DashboardRealtimeService {
         accuracy: _positiveFiniteValue(position.accuracy),
       );
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'location_update_failed',
+      );
       debugPrint(
         '[DashboardRealtimeService] send location failed: $error\n$stackTrace',
       );
@@ -247,6 +269,14 @@ class DashboardRealtimeService {
     try {
       await RideAlertNotificationService.showNewRide(ride);
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'ride_alert_notification_failed',
+        context: <String, Object?>{
+          'ride_id_present': ride.id.trim().isNotEmpty,
+        },
+      );
       debugPrint(
         '[DashboardRealtimeService] ride alert sound failed: $error\n$stackTrace',
       );

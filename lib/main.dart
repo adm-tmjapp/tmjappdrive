@@ -1,15 +1,15 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:tmjappdrive/screens/splash_screen.dart';
 import 'package:tmjappdrive/services/ride_alert_notification_service.dart';
 import 'package:tmjappdrive/utils/colors.dart';
+import 'package:tmjappdrive/observability/app_observability.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -30,17 +30,28 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (_) {}
 
-  if (firebaseReady) {
-    final crashlytics = FirebaseCrashlytics.instance;
-    await crashlytics.setCrashlyticsCollectionEnabled(!kDebugMode);
-    FlutterError.onError = crashlytics.recordFlutterFatalError;
-    ui.PlatformDispatcher.instance.onError = (error, stack) {
-      crashlytics.recordError(error, stack, fatal: true);
-      return true;
-    };
-  }
+  await AppObservability.initialize(firebaseReady: firebaseReady);
+  FlutterError.onError = (details) {
+    unawaited(
+      AppObservability.recordError(
+        details.exception,
+        details.stack ?? StackTrace.current,
+        fatal: true,
+        reason: 'flutter_framework_error',
+      ),
+    );
+  };
+  ui.PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(AppObservability.recordError(error, stack, fatal: true));
+    return true;
+  };
   await RideAlertNotificationService.initialize();
-  runApp(const ProviderScope(child: MyApp()));
+  runZonedGuarded(() => runApp(const ProviderScope(child: MyApp())), (
+    error,
+    stack,
+  ) {
+    unawaited(AppObservability.recordError(error, stack, fatal: true));
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -52,6 +63,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Motorista',
       debugShowCheckedModeBanner: false,
+      navigatorObservers: <NavigatorObserver>[
+        AppObservability.navigatorObserver,
+      ],
       theme: ThemeData(
         // This is the theme of your application.
         //

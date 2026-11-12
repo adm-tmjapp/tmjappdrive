@@ -13,6 +13,7 @@ import '../../../wallet_pix/presentation/screens/wallet_earnings_screen.dart';
 import '../widgets/dashboard_rides_list.dart';
 import '../widgets/dashboard_summary_cards.dart';
 import '../widgets/notification_widgets.dart';
+import '../../../observability/app_observability.dart';
 
 class DashboardFeatureScreen extends ConsumerStatefulWidget {
   const DashboardFeatureScreen({super.key});
@@ -412,7 +413,24 @@ class _HeaderRow extends StatelessWidget {
                       color: Color(0xFF18412F),
                       size: 36,
                     )
-                    : Image(image: provider, fit: BoxFit.cover),
+                    : Image(
+                      image: provider,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, error, stackTrace) {
+                        unawaited(
+                          AppObservability.recordError(
+                            error,
+                            stackTrace,
+                            reason: 'profile_image_load_failed',
+                          ),
+                        );
+                        return const Icon(
+                          Icons.person,
+                          color: Color(0xFF18412F),
+                          size: 36,
+                        );
+                      },
+                    ),
           ),
         ),
         const SizedBox(width: 14),

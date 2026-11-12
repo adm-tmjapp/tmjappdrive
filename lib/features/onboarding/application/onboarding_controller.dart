@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/sms_code.dart';
 import '../domain/onboarding_models.dart';
 import '../domain/onboarding_repository.dart';
+import '../../../observability/app_observability.dart';
 
 class DriverOnboardingState {
   const DriverOnboardingState({
@@ -87,6 +88,10 @@ class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
         clearError: true,
       );
     } catch (e) {
+      await AppObservability.event(
+        'onboarding_load_failed',
+        parameters: {'reason': 'request_failed'},
+      );
       state = state.copyWith(
         isLoading: false,
         error: _message(e, 'Falha ao carregar onboarding.'),
@@ -176,6 +181,10 @@ class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
       );
       return vehicleId;
     } catch (e) {
+      await AppObservability.event(
+        'onboarding_vehicle_failed',
+        parameters: {'action': 'register_vehicle'},
+      );
       state = state.copyWith(
         isSubmitting: false,
         error: _message(e, 'Falha ao cadastrar veículo.'),
@@ -232,6 +241,10 @@ class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
       );
       return true;
     } catch (e) {
+      await AppObservability.event(
+        'onboarding_verification_failed',
+        parameters: {'action': 'code'},
+      );
       state = state.copyWith(
         isSubmitting: false,
         error: _message(e, 'Falha na validacao.'),
@@ -262,6 +275,10 @@ class DriverOnboardingController extends StateNotifier<DriverOnboardingState> {
       );
       return true;
     } catch (e) {
+      await AppObservability.event(
+        'onboarding_document_failed',
+        parameters: {'action': 'upload'},
+      );
       state = state.copyWith(
         isSubmitting: false,
         error: _message(e, 'Falha ao enviar dados do onboarding.'),

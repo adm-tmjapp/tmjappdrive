@@ -5,6 +5,7 @@ import 'package:http/http.dart';
 import '../data/api_response.dart';
 import '../data/response_login.dart';
 import 'base_api.dart';
+import '../observability/app_observability.dart';
 
 class Authapi {
   BaseApi baseApi = BaseApi();
@@ -35,14 +36,38 @@ class Authapi {
 
         if (loginPayload != null && loginPayload.containsKey("token")) {
           ResponseLogin responseLogin = ResponseLogin.fromJson(loginPayload);
+          AppObservability.setUserContext(
+            userId: responseLogin.user?.id,
+            role: responseLogin.user?.role,
+          );
+          await AppObservability.event(
+            'login_success',
+            parameters: {'auth_method': 'password'},
+          );
           return ApiResponseModel(response, responseLogin);
         } else {
+          await AppObservability.event(
+            'login_failure',
+            parameters: {'auth_method': 'password', 'reason': 'missing_token'},
+          );
           return ApiResponseModel(response, null);
         }
       } else {
+        await AppObservability.event(
+          'login_failure',
+          parameters: {
+            'auth_method': 'password',
+            'reason': 'http_${response.statusCode}',
+          },
+        );
         return ApiResponseModel(response, null);
       }
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'login_exception',
+      );
       return ApiResponseModel.fromException(error, stackTrace, null);
     }
   }
@@ -107,17 +132,37 @@ class Authapi {
             ResponseLogin responseLogin = ResponseLogin.fromJson(
               decodedBody['data'],
             );
+            await AppObservability.event(
+              'signup_completed',
+              parameters: {'role': 'driver'},
+            );
             return ApiResponseModel(response, responseLogin);
           } else {
             ResponseLogin responseLogin = ResponseLogin.fromJson(decodedBody);
+            await AppObservability.event(
+              'signup_completed',
+              parameters: {'role': 'driver'},
+            );
             return ApiResponseModel(response, responseLogin);
           }
         }
         return ApiResponseModel(response, null);
       } else {
+        await AppObservability.event(
+          'signup_failure',
+          parameters: {
+            'role': 'driver',
+            'reason': 'http_${response.statusCode}',
+          },
+        );
         return ApiResponseModel(response, null);
       }
     } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'signup_exception',
+      );
       return ApiResponseModel.fromException(error, stackTrace, null);
     }
   }
