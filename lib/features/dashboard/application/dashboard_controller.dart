@@ -167,7 +167,9 @@ class DashboardController extends StateNotifier<DashboardState> {
                 ? (error.message.trim().isEmpty
                     ? driverNotActiveMessage
                     : error.message)
-                : error.message,
+                : (error.statusCode != null && error.statusCode! >= 500
+                    ? serviceUnavailableMessage
+                    : error.message),
       );
     } catch (_) {
       await AppObservability.event(

@@ -26,6 +26,16 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Precisamos acessar a camera para capturar sua foto e os documentos do onboarding.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Use o Face ID para entrar com segurança na sua conta de motorista.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Precisamos da sua localizacao para distribuir corridas proximas enquanto voce estiver online.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Precisamos acessar sua galeria para salvar e reutilizar imagens relacionadas ao onboarding.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Precisamos acessar sua galeria para selecionar fotos e documentos do onboarding.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -47,16 +57,6 @@
 			</array>
 		</dict>
 	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Precisamos acessar a camera para capturar sua foto e os documentos do onboarding.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Use o Face ID para entrar com segurança na sua conta de motorista.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Precisamos da sua localizacao para distribuir corridas proximas enquanto voce estiver online.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Precisamos acessar sua galeria para salvar e reutilizar imagens relacionadas ao onboarding.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Precisamos acessar sua galeria para selecionar fotos e documentos do onboarding.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

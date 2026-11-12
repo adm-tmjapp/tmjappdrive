@@ -134,6 +134,14 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
             title: const Text('Aviso'),
             content: Text(newError),
             actions: [
+              if (newError == DashboardController.serviceUnavailableMessage)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    unawaited(_refreshDashboard());
+                  },
+                  child: const Text('Tentar novamente'),
+                ),
               TextButton(
                 onPressed: () {
                   Navigator.of(dialogContext).pop();

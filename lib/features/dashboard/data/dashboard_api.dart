@@ -67,9 +67,8 @@ class DashboardApi {
     final uri = Uri.parse('${_baseApi.baseUrl}v2/driver/availability');
     final headers = await _baseApi.getHeaders();
     final body = jsonEncode(<String, String>{
-      'availability': availability == DriverAvailability.online
-          ? 'ONLINE'
-          : 'OFFLINE',
+      'availability':
+          availability == DriverAvailability.online ? 'ONLINE' : 'OFFLINE',
     });
 
     _logRequest(method: 'PATCH', uri: uri, headers: headers, body: body);
@@ -207,9 +206,11 @@ class DashboardApi {
     debugPrint(
       '[DashboardApi][$method] hasToken=${headers.containsKey("Authorization")}',
     );
-    debugPrint('[DashboardApi][$method] headers=$headers');
+    debugPrint(
+      '[DashboardApi][$method] authHeaderPresent=${headers.containsKey("Authorization")}',
+    );
     if (body != null) {
-      debugPrint('[DashboardApi][$method] body=$body');
+      debugPrint('[DashboardApi][$method] requestBodyPresent=true');
     }
   }
 
@@ -221,7 +222,9 @@ class DashboardApi {
     debugPrint(
       '[DashboardApi][$method] response url=${_resolveUrl(uri)} status=${response.statusCode}',
     );
-    debugPrint('[DashboardApi][$method] response body=${response.body}');
+    debugPrint(
+      '[DashboardApi][$method] responseBytes=${response.bodyBytes.length}',
+    );
   }
 
   String _resolveUrl(Uri uri) {
