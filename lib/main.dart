@@ -19,39 +19,43 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
-    DeviceOrientation.portraitUp,
-  ]);
-  var firebaseReady = false;
-  try {
-    await Firebase.initializeApp();
-    firebaseReady = true;
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  } catch (_) {}
+  await runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
+        DeviceOrientation.portraitUp,
+      ]);
+      var firebaseReady = false;
+      try {
+        await Firebase.initializeApp();
+        firebaseReady = true;
+        FirebaseMessaging.onBackgroundMessage(
+          firebaseMessagingBackgroundHandler,
+        );
+      } catch (_) {}
 
-  await AppObservability.initialize(firebaseReady: firebaseReady);
-  FlutterError.onError = (details) {
-    unawaited(
-      AppObservability.recordError(
-        details.exception,
-        details.stack ?? StackTrace.current,
-        fatal: true,
-        reason: 'flutter_framework_error',
-      ),
-    );
-  };
-  ui.PlatformDispatcher.instance.onError = (error, stack) {
-    unawaited(AppObservability.recordError(error, stack, fatal: true));
-    return true;
-  };
-  await RideAlertNotificationService.initialize();
-  runZonedGuarded(() => runApp(const ProviderScope(child: MyApp())), (
-    error,
-    stack,
-  ) {
-    unawaited(AppObservability.recordError(error, stack, fatal: true));
-  });
+      await AppObservability.initialize(firebaseReady: firebaseReady);
+      FlutterError.onError = (details) {
+        unawaited(
+          AppObservability.recordError(
+            details.exception,
+            details.stack ?? StackTrace.current,
+            fatal: true,
+            reason: 'flutter_framework_error',
+          ),
+        );
+      };
+      ui.PlatformDispatcher.instance.onError = (error, stack) {
+        unawaited(AppObservability.recordError(error, stack, fatal: true));
+        return true;
+      };
+      await RideAlertNotificationService.initialize();
+      runApp(const ProviderScope(child: MyApp()));
+    },
+    (error, stack) {
+      unawaited(AppObservability.recordError(error, stack, fatal: true));
+    },
+  );
 }
 
 class MyApp extends StatelessWidget {
