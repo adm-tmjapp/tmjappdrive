@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -260,13 +261,22 @@ class _PixTransferCpfScreenState extends ConsumerState<PixTransferCpfScreen> {
                                   TextField(
                                     controller: _cpfCtrl,
                                     keyboardType: TextInputType.number,
-                                    onChanged: controller.setCpfDraft,
+                                    maxLength: 11,
+                                    inputFormatters: <TextInputFormatter>[
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(11),
+                                    ],
+                                    onChanged:
+                                        (value) => controller.setCpfDraft(
+                                          WalletController.normalizeCpf(value),
+                                        ),
                                     style: const TextStyle(
                                       color: Color(0xFFA1A1AA),
                                       fontSize: 13,
                                     ),
                                     decoration: InputDecoration(
                                       isDense: true,
+                                      counterText: '',
                                       contentPadding: const EdgeInsets.only(
                                         top: 2,
                                       ),
@@ -336,7 +346,9 @@ class _PixTransferCpfScreenState extends ConsumerState<PixTransferCpfScreen> {
                                   await _showMissingCpfAlert();
                                   return;
                                 }
-                                final ok = await controller.submitTransfer();
+                                final ok = await controller.submitTransfer(
+                                  cpf: _cpfCtrl.text,
+                                );
                                 if (!context.mounted || !ok) return;
                                 Navigator.pushReplacement(
                                   context,

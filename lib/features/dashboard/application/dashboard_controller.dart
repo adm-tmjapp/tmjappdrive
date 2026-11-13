@@ -28,6 +28,7 @@ class DashboardController extends StateNotifier<DashboardState> {
 
   final DashboardRepository _repository;
   final DashboardRealtimeService _realtimeService;
+  Future<void>? _loadInFlight;
 
   Future<void> _loadDriverSession() async {
     try {
@@ -53,7 +54,23 @@ class DashboardController extends StateNotifier<DashboardState> {
     await _realtimeService.initialize(onNewRideRequest: _handleNewRideRequest);
   }
 
-  Future<void> load() async {
+  /// Consolida recargas disparadas pelo timer, retorno ao app e ações do
+  /// usuário. Sem isso, respostas fora de ordem podem sobrescrever o estado
+  /// e tentar atualizar a interface durante a troca de Activity.
+  Future<void> load() {
+    final inFlight = _loadInFlight;
+    if (inFlight != null) return inFlight;
+
+    final request = _loadDashboard();
+    _loadInFlight = request;
+    return request.whenComplete(() {
+      if (identical(_loadInFlight, request)) {
+        _loadInFlight = null;
+      }
+    });
+  }
+
+  Future<void> _loadDashboard() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {

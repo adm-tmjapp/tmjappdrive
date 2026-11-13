@@ -34,6 +34,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool _showPassword = false;
   bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
   bool _biometricLoading = false;
   BiometricType? _biometricType;
   String? _storedEmail;
@@ -42,6 +43,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   static const _secureEmailKey = 'tmjappdrive.login.email';
   static const _securePasswordKey = 'tmjappdrive.login.password';
+  static const _biometricEnabledKey = 'tmjappdrive.biometric.enabled';
 
   @override
   void initState() {
@@ -95,12 +97,16 @@ class _SignInScreenState extends State<SignInScreen> {
       _passwordController.text = password ?? '';
       _storedEmail = email;
       _storedPassword = password;
+      _biometricEnabled = prefs.getBool(_biometricEnabledKey) ?? false;
     });
   }
 
   Future<void> _loadBiometricAvailability() async {
     try {
-      if (!await _localAuth.canCheckBiometrics) return;
+      if (!await _localAuth.isDeviceSupported() ||
+          !await _localAuth.canCheckBiometrics) {
+        return;
+      }
       final available = await _localAuth.getAvailableBiometrics();
       if (!mounted) return;
       setState(() {
@@ -200,6 +206,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   bool get _canUseBiometricLogin =>
       _biometricAvailable &&
+      _biometricEnabled &&
       _storedEmail != null &&
       _storedPassword != null &&
       _emailController.text.trim() == _storedEmail &&
@@ -225,6 +232,11 @@ class _SignInScreenState extends State<SignInScreen> {
       case 'PermanentlyLockedOut':
       case 'permanentlyLockedOut':
         return 'Biometria temporariamente bloqueada. Use sua senha.';
+      case 'no_fragment_activity':
+        return 'A biometria precisa ser atualizada. Reinicie o aplicativo.';
+      case 'NotAvailable':
+      case 'notAvailable':
+        return 'A biometria não está disponível neste aparelho.';
       default:
         return 'Não foi possível validar sua biometria. Tente novamente.';
     }

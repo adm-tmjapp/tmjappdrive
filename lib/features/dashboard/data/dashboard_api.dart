@@ -125,6 +125,41 @@ class DashboardApi {
     );
   }
 
+  /// Registra a avaliação feita pelo motorista sobre o passageiro após a
+  /// conclusão da corrida. O backend vincula o avaliador e o passageiro à
+  /// própria corrida autenticada.
+  Future<void> ratePassenger({
+    required String rideId,
+    required int rating,
+  }) async {
+    if (rideId.trim().isEmpty) {
+      throw const DashboardApiException(
+        'Não foi possível identificar a corrida avaliada.',
+      );
+    }
+    if (rating < 1 || rating > 5) {
+      throw const DashboardApiException(
+        'Selecione uma avaliação entre 1 e 5 estrelas.',
+      );
+    }
+
+    final uri = Uri.parse('${_baseApi.baseUrl}v2/driver/rides/$rideId/rating');
+    final headers = await _baseApi.getHeaders();
+    final body = jsonEncode(<String, dynamic>{'rating': rating});
+
+    _logRequest(method: 'POST', uri: uri, headers: headers, body: body);
+    final response = await _baseApi.client.post(
+      uri,
+      headers: headers,
+      body: body,
+    );
+    _logResponse(method: 'POST', uri: uri, response: response);
+    _parsePayload(
+      response,
+      fallbackError: 'Não foi possível enviar sua avaliação. Tente novamente.',
+    );
+  }
+
   Future<void> _postRideAction({
     required String rideId,
     required String action,

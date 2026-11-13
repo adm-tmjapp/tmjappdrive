@@ -1,5 +1,6 @@
 package br.com.tmjapp.tmjapp.drive.tmjappdrive
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// local_auth usa o FragmentManager para exibir o prompt biométrico Android.
+class MainActivity : FlutterFragmentActivity()

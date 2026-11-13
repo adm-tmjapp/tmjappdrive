@@ -46,6 +46,7 @@ class _DashboardRideSummaryScreenState
   RideHistoryDetail? _detail;
   bool _isLoading = true;
   bool _isCompletingRide = false;
+  bool _rideCompleted = false;
   bool _showCompletedState = false;
   int _passengerRating = 4;
 
@@ -371,18 +372,38 @@ class _DashboardRideSummaryScreenState
     });
 
     try {
-      await _dashboardApi.completeRide(widget.ride.id);
+      // A conclusão e a avaliação são operações distintas. Ao preservar este
+      // estado, uma nova tentativa após falha de rede reenvia só a avaliação
+      // e não tenta concluir a mesma corrida pela segunda vez.
+      if (!_rideCompleted) {
+        await _dashboardApi.completeRide(widget.ride.id);
+        _rideCompleted = true;
+      }
+      await _dashboardApi.ratePassenger(
+        rideId: widget.ride.id,
+        rating: _passengerRating,
+      );
       if (!mounted) return;
       setState(() {
         _isCompletingRide = false;
         _showCompletedState = true;
       });
+    } on DashboardApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isCompletingRide = false;
+      });
+      _showMessage(error.message);
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _isCompletingRide = false;
       });
-      _showMessage('Não foi possível concluir a corrida.');
+      _showMessage(
+        _rideCompleted
+            ? 'Corrida concluída, mas não foi possível enviar a avaliação. Tente novamente.'
+            : 'Não foi possível concluir a corrida.',
+      );
     }
   }
 

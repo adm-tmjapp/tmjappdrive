@@ -17,7 +17,8 @@ class DriverChatScreen extends StatefulWidget {
   State<DriverChatScreen> createState() => _DriverChatScreenState();
 }
 
-class _DriverChatScreenState extends State<DriverChatScreen> {
+class _DriverChatScreenState extends State<DriverChatScreen>
+    with WidgetsBindingObserver {
   final _api = RideChatApi();
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -26,33 +27,65 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
   bool _loading = true;
   bool _sending = false;
   bool _chatClosed = false;
+  bool _isAppInForeground = true;
+  bool _isLoadingMessages = false;
   String? _error;
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
-    _timer = Timer.periodic(const Duration(seconds: 4), (_) => _load());
+    _startPolling();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     _input.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _isAppInForeground = true;
+        _startPolling();
+        unawaited(_load());
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _isAppInForeground = false;
+        _timer?.cancel();
+        _timer = null;
+    }
+  }
+
+  void _startPolling() {
+    if (_timer != null || _chatClosed) return;
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) => _load());
+  }
+
   Future<void> _load() async {
+    if (!_isAppInForeground || _isLoadingMessages || _chatClosed) return;
+    _isLoadingMessages = true;
     try {
       final messages = await _api.list(widget.rideId);
-      await _api.markRead(widget.rideId);
       if (!mounted) return;
       setState(() {
         _messages = messages;
         _loading = false;
         _error = null;
       });
-      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      // Uma falha ao marcar leitura não pode esconder uma mensagem já
+      // recebida. A operação é repetida no próximo ciclo de atualização.
+      unawaited(_markReadSafely());
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      }
     } catch (error) {
       final message = error.toString().replaceFirst('Exception: ', '');
       if (message.contains('encerrado após o término')) {
@@ -66,11 +99,26 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
         }
         return;
       }
-      if (mounted && _messages.isEmpty)
+      if (mounted && _messages.isEmpty) {
         setState(() {
           _loading = false;
           _error = error.toString().replaceFirst('Exception: ', '');
         });
+      }
+    } finally {
+      _isLoadingMessages = false;
+    }
+  }
+
+  Future<void> _markReadSafely() async {
+    try {
+      await _api.markRead(widget.rideId);
+    } catch (error, stackTrace) {
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'ride_chat_mark_read_failed',
+      );
     }
   }
 
@@ -90,12 +138,13 @@ class _DriverChatScreenState extends State<DriverChatScreen> {
         _timer?.cancel();
         setState(() => _chatClosed = true);
       }
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error.toString().replaceFirst('Exception: ', '')),
           ),
         );
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }

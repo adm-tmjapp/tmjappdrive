@@ -60,12 +60,43 @@ class WalletController extends StateNotifier<WalletState> {
     state = state.copyWith(amountDraft: value, clearError: true);
   }
 
-  Future<bool> submitTransfer() async {
-    final rawCpf = state.cpfDraft.replaceAll(RegExp(r'\D'), '');
+  /// Normaliza o texto vindo do campo antes de enviá-lo à API. Mantém esta
+  /// regra fora da interface para que colagem, máscara e teclado numérico
+  /// tenham exatamente o mesmo comportamento.
+  static String normalizeCpf(String value) =>
+      value.replaceAll(RegExp(r'[^0-9]'), '');
+
+  static bool isValidCpf(String value) {
+    final cpf = normalizeCpf(value);
+    if (cpf.length != 11 || RegExp(r'^(\d)\1{10}$').hasMatch(cpf)) {
+      return false;
+    }
+
+    int digit(int length) {
+      var sum = 0;
+      for (var index = 0; index < length; index++) {
+        sum += int.parse(cpf[index]) * (length + 1 - index);
+      }
+      final remainder = sum % 11;
+      return remainder < 2 ? 0 : 11 - remainder;
+    }
+
+    return digit(9) == int.parse(cpf[9]) && digit(10) == int.parse(cpf[10]);
+  }
+
+  Future<bool> submitTransfer({String? cpf}) async {
+    final rawCpf = normalizeCpf(cpf ?? state.cpfDraft);
     final amount = double.tryParse(state.amountDraft.replaceAll(',', '.'));
 
     if (rawCpf.length != 11) {
-      state = state.copyWith(error: 'CPF invalido. Informe 11 digitos.');
+      state = state.copyWith(error: 'Informe os 11 dígitos do CPF.');
+      return false;
+    }
+
+    if (!isValidCpf(rawCpf)) {
+      state = state.copyWith(
+        error: 'CPF inválido. Verifique os dígitos informados.',
+      );
       return false;
     }
 

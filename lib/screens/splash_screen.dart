@@ -3,9 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tmjappdrive/data/response_login.dart';
+import 'package:tmjappdrive/data/user.dart';
+import 'package:tmjappdrive/features/onboarding/presentation/screens/onboarding_flow_screen.dart';
 import 'package:tmjappdrive/repository/auth_repository.dart';
 import 'package:tmjappdrive/screens/auth/bloc/login_bloc.dart';
 import 'package:tmjappdrive/screens/auth/sign_in_screen.dart';
+import 'package:tmjappdrive/utils/strings.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -32,18 +37,7 @@ class _SplashScreenState extends State<SplashScreen>
       end: 0.65,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
-    _timer = Timer(const Duration(seconds: 5), () {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder:
-              (_) => BlocProvider(
-                create: (_) => LoginBloc(authRepository: AuthRepository()),
-                child: const SignInScreen(),
-              ),
-        ),
-      );
-    });
+    _timer = Timer(const Duration(seconds: 5), _restoreSessionAndNavigate);
   }
 
   @override
@@ -51,6 +45,48 @@ class _SplashScreenState extends State<SplashScreen>
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreSessionAndNavigate() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(Strings.prefToken)?.trim();
+    final driverId = prefs.getString(Strings.prefDriverId)?.trim();
+    if (!mounted) return;
+
+    if (token != null &&
+        token.isNotEmpty &&
+        driverId != null &&
+        driverId.isNotEmpty) {
+      final session = ResponseLogin(
+        success: true,
+        token: token,
+        user: User(
+          id: driverId,
+          name: prefs.getString(Strings.prefDriverName),
+          email: null,
+          phone: null,
+          password: null,
+          role: 'DRIVER',
+          creatAt: null,
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => OnboardingFlowScreen(responseLogin: session),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder:
+            (_) => BlocProvider(
+              create: (_) => LoginBloc(authRepository: AuthRepository()),
+              child: const SignInScreen(),
+            ),
+      ),
+    );
   }
 
   @override

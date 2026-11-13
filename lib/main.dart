@@ -15,7 +15,22 @@ import 'package:tmjappdrive/observability/app_observability.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp();
-  } catch (_) {}
+    // Mensagens com o bloco `notification` já são exibidas pelo Android em
+    // segundo plano. Para data-only, criamos o alerta local explicitamente.
+    if (message.notification == null &&
+        message.data['type'] == 'NEW_RIDE_REQUEST') {
+      await RideAlertNotificationService.showBackgroundNewRide(
+        rideId: message.data['rideId']?.toString() ?? '',
+        pickupAddress: message.data['pickupAddress']?.toString() ?? '',
+      );
+    }
+  } catch (error, stackTrace) {
+    await AppObservability.recordError(
+      error,
+      stackTrace,
+      reason: 'background_push_handler_failed',
+    );
+  }
 }
 
 Future<void> main() async {

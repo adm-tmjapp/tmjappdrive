@@ -32,7 +32,7 @@ class BaseApi extends BaseClient {
     return super.post(
       Uri.parse(baseUrl + url.toString()),
       headers: headers,
-      body: jsonEncode(body),
+      body: body == null ? null : jsonEncode(body),
       encoding: encoding,
     );
   }
@@ -48,6 +48,21 @@ class BaseApi extends BaseClient {
       Uri.parse(baseUrl + url.toString()),
       headers: headers,
       body: jsonEncode(body),
+      encoding: encoding,
+    );
+  }
+
+  @override
+  Future<Response> patch(
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+    Encoding? encoding,
+  }) {
+    return super.patch(
+      Uri.parse(baseUrl + url.toString()),
+      headers: headers,
+      body: body == null ? null : jsonEncode(body),
       encoding: encoding,
     );
   }

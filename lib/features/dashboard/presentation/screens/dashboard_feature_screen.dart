@@ -30,32 +30,55 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
   int _currentTabIndex = 0;
   String? _lastOpenedActiveRideId;
   Timer? _refreshTimer;
+  bool _isAppInForeground = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (_currentTabIndex == 0) unawaited(_refreshDashboard());
-    });
+    _startRefreshTimer();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _refreshTimer?.cancel();
+    _stopRefreshTimer();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _currentTabIndex == 0) {
-      unawaited(_refreshDashboard());
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _isAppInForeground = true;
+        _startRefreshTimer();
+        if (_currentTabIndex == 0) {
+          unawaited(_refreshDashboard());
+        }
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _isAppInForeground = false;
+        _stopRefreshTimer();
     }
   }
 
   Future<void> _refreshDashboard() async {
+    if (!mounted || !_isAppInForeground || _currentTabIndex != 0) return;
     await ref.read(dashboardControllerProvider.notifier).load();
+  }
+
+  void _startRefreshTimer() {
+    if (_refreshTimer != null) return;
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      unawaited(_refreshDashboard());
+    });
+  }
+
+  void _stopRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
   }
 
   void _showIncomingRideDialog(RideCardItem ride) {
@@ -110,6 +133,9 @@ class _DashboardFeatureScreenState extends ConsumerState<DashboardFeatureScreen>
   @override
   Widget build(BuildContext context) {
     ref.listen(dashboardControllerProvider, (previous, next) {
+      // Não tente abrir uma rota/modal enquanto a Activity não está visível.
+      // Isso evita uma corrida de ciclo de vida quando o usuário alterna apps.
+      if (!mounted || !_isAppInForeground) return;
       final incomingRide = next.liveRideRequest;
       final previousRideId = previous?.liveRideRequest?.id;
       if (incomingRide != null &&

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../application/onboarding_providers.dart';
@@ -23,7 +24,15 @@ class OnboardingCriminalRecordScreen extends ConsumerStatefulWidget {
 
 class _OnboardingCriminalRecordScreenState
     extends ConsumerState<OnboardingCriminalRecordScreen> {
+  final _picker = ImagePicker();
   File? _selectedFile;
+  static const _draftPrefix = 'onboarding.criminal_record';
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreCaptureDraft();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +263,8 @@ class _OnboardingCriminalRecordScreenState
                           );
                           if (!context.mounted) return;
                           if (ok) {
+                            await _clearCaptureDraft();
+                            if (!context.mounted) return;
                             Navigator.of(context).pop();
                           }
                         },
@@ -291,15 +302,44 @@ class _OnboardingCriminalRecordScreenState
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-      maxWidth: 1080,
-      maxHeight: 1920,
-    );
-    if (image == null) return;
-    final file = File(image.path);
+    await _savePendingCapture();
+    try {
+      final image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+        maxWidth: 1080,
+        maxHeight: 1920,
+      );
+      if (image == null) {
+        await _clearPendingCapture();
+        return;
+      }
+      await _useImage(File(image.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _restoreCaptureDraft() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedPath = prefs.getString(_draftKey('file'));
+      if (storedPath != null && await File(storedPath).exists()) {
+        await _useImage(File(storedPath));
+      }
+      final response = await _picker.retrieveLostData();
+      if (response.exception != null) {
+        _showCameraError();
+        return;
+      }
+      final image = response.file ?? response.files?.firstOrNull;
+      if (image != null) await _useImage(File(image.path));
+    } catch (_) {
+      _showCameraError();
+    }
+  }
+
+  Future<void> _useImage(File file) async {
     if (await file.length() > 5 * 1024 * 1024) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -307,7 +347,41 @@ class _OnboardingCriminalRecordScreenState
       );
       return;
     }
+    if (!mounted) return;
     setState(() => _selectedFile = file);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_draftKey('file'), file.path);
+    await _clearPendingCapture();
+  }
+
+  String _draftKey(String field) =>
+      '$_draftPrefix.${widget.session.userId}.$field';
+
+  Future<void> _savePendingCapture() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_draftKey('pending'), true);
+  }
+
+  Future<void> _clearPendingCapture() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey('pending'));
+  }
+
+  Future<void> _clearCaptureDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_draftKey('file')),
+      prefs.remove(_draftKey('pending')),
+    ]);
+  }
+
+  void _showCameraError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Não foi possível recuperar a foto. Tente novamente.'),
+      ),
+    );
   }
 }
 

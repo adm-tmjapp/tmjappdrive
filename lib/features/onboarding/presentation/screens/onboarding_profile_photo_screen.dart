@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
@@ -23,11 +24,12 @@ class _OnboardingProfilePhotoScreenState
     extends ConsumerState<OnboardingProfilePhotoScreen> {
   final _picker = ImagePicker();
   File? _selectedFile;
+  static const _draftPrefix = 'onboarding.profile_photo';
 
   @override
   void initState() {
     super.initState();
-    _recoverLostImage();
+    _restoreCaptureDraft();
   }
 
   static const int _stepNumber = 1;
@@ -137,6 +139,8 @@ class _OnboardingProfilePhotoScreenState
                         );
                         if (!context.mounted) return;
                         if (ok) {
+                          await _clearCaptureDraft();
+                          if (!context.mounted) return;
                           Navigator.of(context).pop();
                         }
                       },
@@ -152,6 +156,7 @@ class _OnboardingProfilePhotoScreenState
   }
 
   Future<void> _pick(ImageSource source) async {
+    await _savePendingCapture();
     try {
       final picked = await _picker.pickImage(
         source: source,
@@ -159,18 +164,32 @@ class _OnboardingProfilePhotoScreenState
         maxWidth: 500,
         maxHeight: 500,
       );
-      if (picked == null) return;
+      if (picked == null) {
+        await _clearPendingCapture();
+        return;
+      }
       await _useImage(File(picked.path));
     } catch (_) {
       _showCameraError();
     }
   }
 
-  Future<void> _recoverLostImage() async {
+  Future<void> _restoreCaptureDraft() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedPath = prefs.getString(_draftKey('file'));
+      if (storedPath != null && await File(storedPath).exists()) {
+        await _useImage(File(storedPath));
+      }
       final response = await _picker.retrieveLostData();
-      final image = response.files?.firstOrNull;
-      if (image != null) await _useImage(File(image.path));
+      if (response.exception != null) {
+        _showCameraError();
+        return;
+      }
+      final image = response.file ?? response.files?.firstOrNull;
+      if (image != null) {
+        await _useImage(File(image.path));
+      }
     } catch (_) {
       _showCameraError();
     }
@@ -186,6 +205,30 @@ class _OnboardingProfilePhotoScreenState
     }
     if (!mounted) return;
     setState(() => _selectedFile = file);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_draftKey('file'), file.path);
+    await _clearPendingCapture();
+  }
+
+  String _draftKey(String field) =>
+      '$_draftPrefix.${widget.session.userId}.$field';
+
+  Future<void> _savePendingCapture() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_draftKey('pending'), true);
+  }
+
+  Future<void> _clearPendingCapture() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_draftKey('pending'));
+  }
+
+  Future<void> _clearCaptureDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove(_draftKey('file')),
+      prefs.remove(_draftKey('pending')),
+    ]);
   }
 
   void _showCameraError() {

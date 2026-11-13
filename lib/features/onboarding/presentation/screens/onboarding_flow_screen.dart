@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../data/response_login.dart';
 import '../../../../screens/dashboard_screen.dart';
@@ -28,6 +29,7 @@ class OnboardingFlowScreen extends ConsumerStatefulWidget {
 class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
     with WidgetsBindingObserver {
   bool _emailScreenOpened = false;
+  bool _captureResumeChecked = false;
 
   DriverOnboardingSession get _session =>
       DriverOnboardingSession(responseLogin: widget.responseLogin);
@@ -36,6 +38,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _resumeInterruptedCapture();
   }
 
   @override
@@ -49,6 +52,31 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
     if (state == AppLifecycleState.resumed) {
       ref.read(driverOnboardingControllerProvider(_session).notifier).load();
     }
+  }
+
+  Future<void> _resumeInterruptedCapture() async {
+    if (_captureResumeChecked) return;
+    _captureResumeChecked = true;
+    final prefs = await SharedPreferences.getInstance();
+    final userId = _session.userId;
+    final profilePending =
+        prefs.getBool('onboarding.profile_photo.$userId.pending') == true;
+    final criminalPending =
+        prefs.getBool('onboarding.criminal_record.$userId.pending') == true;
+    if (!mounted || (!profilePending && !criminalPending)) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder:
+              (_) =>
+                  profilePending
+                      ? OnboardingProfilePhotoScreen(session: _session)
+                      : OnboardingCriminalRecordScreen(session: _session),
+        ),
+      );
+    });
   }
 
   @override

@@ -8,12 +8,20 @@ class RideChatMessage {
     required this.content,
     required this.isMine,
   });
-  factory RideChatMessage.fromJson(Map<String, dynamic> json) =>
-      RideChatMessage(
-        id: '${json['id'] ?? json['_id'] ?? ''}',
-        content: '${json['content'] ?? ''}',
-        isMine: json['isMine'] == true,
-      );
+  factory RideChatMessage.fromJson(Map<String, dynamic> json) {
+    final sender =
+        '${json['senderType'] ?? json['senderRole'] ?? json['sender'] ?? ''}'
+            .toLowerCase();
+    return RideChatMessage(
+      id: '${json['id'] ?? json['_id'] ?? ''}',
+      content: '${json['content'] ?? json['text'] ?? json['message'] ?? ''}',
+      isMine:
+          json['isMine'] == true ||
+          json['isMine']?.toString().toLowerCase() == 'true' ||
+          sender == 'driver' ||
+          sender == 'motorista',
+    );
+  }
   final String id;
   final String content;
   final bool isMine;
@@ -26,10 +34,15 @@ class RideChatApi {
     final response = await _api.get(
       Uri.parse('v2/driver/rides/$rideId/messages'),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(_message(response));
+    }
     final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return (data['messages'] as List<dynamic>? ?? const [])
+    final payload =
+        data['data'] is Map<String, dynamic>
+            ? data['data'] as Map<String, dynamic>
+            : data;
+    return (payload['messages'] as List<dynamic>? ?? const [])
         .whereType<Map<String, dynamic>>()
         .map(RideChatMessage.fromJson)
         .toList();
@@ -40,16 +53,24 @@ class RideChatApi {
       Uri.parse('v2/driver/rides/$rideId/messages'),
       body: {'content': content},
     );
-    if (response.statusCode < 200 || response.statusCode >= 300)
+    if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(_message(response));
+    }
     return RideChatMessage.fromJson(
       ((jsonDecode(response.body) as Map<String, dynamic>)['message'])
           as Map<String, dynamic>,
     );
   }
 
-  Future<void> markRead(String rideId) async =>
-      _api.patch(Uri.parse('v2/driver/rides/$rideId/messages/read'));
+  Future<void> markRead(String rideId) async {
+    final response = await _api.patch(
+      Uri.parse('v2/driver/rides/$rideId/messages/read'),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_message(response));
+    }
+  }
+
   String _message(http.Response response) {
     try {
       return (jsonDecode(response.body) as Map<String, dynamic>)['message']

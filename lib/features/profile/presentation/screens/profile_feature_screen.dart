@@ -1,7 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tmjappdrive/features/dashboard/application/dashboard_providers.dart';
 import 'package:tmjappdrive/screens/auth/sign_in_screen.dart';
 
@@ -29,6 +33,111 @@ class _ProfileFeatureScreenState extends ConsumerState<ProfileFeatureScreen> {
   static const Color _muted = Color(0xFF94A3B8);
   static const Color _primary = Color(0xFFD62D86);
   static const Color _danger = Color(0xFFFF4D4F);
+  static const _biometricEnabledKey = 'tmjappdrive.biometric.enabled';
+  static const _secureEmailKey = 'tmjappdrive.login.email';
+  static const _securePasswordKey = 'tmjappdrive.login.password';
+
+  final _localAuth = LocalAuthentication();
+  final _secureStorage = const FlutterSecureStorage();
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
+  bool _biometricLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricSettings();
+  }
+
+  Future<void> _loadBiometricSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final supported = await _localAuth.isDeviceSupported();
+      final canCheck = supported && await _localAuth.canCheckBiometrics;
+      final enrolled =
+          canCheck
+              ? (await _localAuth.getAvailableBiometrics()).isNotEmpty
+              : false;
+      if (!mounted) return;
+      setState(() {
+        _biometricAvailable = enrolled;
+        _biometricEnabled =
+            enrolled && (prefs.getBool(_biometricEnabledKey) ?? false);
+        _biometricLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _biometricLoading = false);
+    }
+  }
+
+  Future<void> _setBiometricEnabled(bool enabled) async {
+    if (_biometricLoading || enabled == _biometricEnabled) return;
+    if (!enabled) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_biometricEnabledKey, false);
+      if (mounted) setState(() => _biometricEnabled = false);
+      return;
+    }
+
+    setState(() => _biometricLoading = true);
+    try {
+      final email = await _secureStorage.read(key: _secureEmailKey);
+      final password = await _secureStorage.read(key: _securePasswordKey);
+      if (email == null ||
+          email.isEmpty ||
+          password == null ||
+          password.isEmpty) {
+        throw const _BiometricSetupException(
+          'Entre com e-mail e senha uma vez antes de ativar a biometria.',
+        );
+      }
+      final authenticated = await _localAuth.authenticate(
+        localizedReason: 'Confirme sua identidade para ativar a biometria',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+          useErrorDialogs: true,
+        ),
+      );
+      if (!authenticated) {
+        throw const _BiometricSetupException('A biometria não foi confirmada.');
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_biometricEnabledKey, true);
+      if (mounted) {
+        setState(() => _biometricEnabled = true);
+        _showBiometricMessage('Biometria ativada para o próximo acesso.');
+      }
+    } on PlatformException catch (error) {
+      _showBiometricMessage(_biometricSetupError(error.code));
+    } on _BiometricSetupException catch (error) {
+      _showBiometricMessage(error.message);
+    } finally {
+      if (mounted) setState(() => _biometricLoading = false);
+    }
+  }
+
+  String _biometricSetupError(String code) {
+    switch (code) {
+      case 'NotEnrolled':
+      case 'notEnrolled':
+        return 'Cadastre uma biometria nas configurações do aparelho.';
+      case 'LockedOut':
+      case 'lockedOut':
+      case 'PermanentlyLockedOut':
+      case 'permanentlyLockedOut':
+        return 'Biometria bloqueada temporariamente. Use a senha do aparelho.';
+      default:
+        return 'Não foi possível ativar a biometria. Tente novamente.';
+    }
+  }
+
+  void _showBiometricMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +325,12 @@ class _ProfileFeatureScreenState extends ConsumerState<ProfileFeatureScreen> {
                     ),
                   );
                 },
+              ),
+              _BiometricSettingsTile(
+                enabled: _biometricEnabled,
+                available: _biometricAvailable,
+                isLoading: _biometricLoading,
+                onChanged: _setBiometricEnabled,
               ),
               const SizedBox(height: 8),
               ListTile(
@@ -590,6 +705,65 @@ class _VehicleCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BiometricSettingsTile extends StatelessWidget {
+  const _BiometricSettingsTile({
+    required this.enabled,
+    required this.available,
+    required this.isLoading,
+    required this.onChanged,
+  });
+
+  final bool enabled;
+  final bool available;
+  final bool isLoading;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SwitchListTile.adaptive(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          secondary: const Icon(
+            Icons.fingerprint_rounded,
+            color: Color(0xFF94A3B8),
+            size: 24,
+          ),
+          title: const Text(
+            'Acesso por biometria',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          subtitle: Text(
+            isLoading
+                ? 'Verificando disponibilidade...'
+                : available
+                ? 'Use sua digital ou rosto no próximo acesso.'
+                : 'Cadastre uma biometria nas configurações do aparelho.',
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+          ),
+          value: enabled,
+          activeTrackColor: const Color(0xFFD62D86),
+          onChanged: isLoading || !available ? null : onChanged,
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Divider(color: Color(0xFF1E293B), height: 1),
+        ),
+      ],
+    );
+  }
+}
+
+class _BiometricSetupException implements Exception {
+  const _BiometricSetupException(this.message);
+
+  final String message;
 }
 
 class _SettingsTile extends StatelessWidget {

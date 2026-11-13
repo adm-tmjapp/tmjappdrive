@@ -79,6 +79,42 @@ class RideAlertNotificationService {
     );
   }
 
+  /// Usado pelo isolate de FCM quando o processo principal está em segundo
+  /// plano. O Android pode encerrar a Activity; a notificação mantém a
+  /// corrida acessível sem depender de um widget ou de uma rota viva.
+  static Future<void> showBackgroundNewRide({
+    required String rideId,
+    required String pickupAddress,
+  }) async {
+    await initialize();
+    final address = pickupAddress.trim();
+    final details = NotificationDetails(
+      android: const AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: 'Alertas sonoros para novas corridas disponíveis.',
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        enableVibration: true,
+        category: AndroidNotificationCategory.call,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
+    await _plugin.show(
+      id: _notificationId(rideId),
+      title: 'Nova corrida disponível',
+      body: address.isEmpty ? 'Você tem uma nova corrida próxima.' : address,
+      notificationDetails: details,
+      payload: rideId,
+    );
+  }
+
   static int _notificationId(String rideId) {
     final hash = rideId.hashCode & 0x7fffffff;
     return hash == 0 ? 1 : hash;
