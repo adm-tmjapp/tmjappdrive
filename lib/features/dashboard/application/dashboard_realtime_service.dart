@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../data/dashboard_realtime_api.dart';
+import '../data/passenger_photo_url.dart';
 import '../domain/dashboard_models.dart';
 import '../../../services/ride_alert_notification_service.dart';
 import '../../../observability/app_observability.dart';
@@ -235,6 +236,12 @@ class DashboardRealtimeService {
     debugPrint('[DashboardRealtimeService] NEW_RIDE_REQUEST data=$data');
     final pickup = _mapValue(data['pickup']);
     final dropoff = _mapValue(data['dropoff']);
+    final passenger =
+        data['passenger'] ??
+        data['rider'] ??
+        data['passengerProfile'] ??
+        data['passengerUser'] ??
+        data['customer'];
 
     final ride = RideCardItem(
       id: _stringValue(data['rideId']),
@@ -262,11 +269,11 @@ class DashboardRealtimeService {
       etaMin: _intValue(data['etaMin']),
       paymentMethodLabel: 'Pagamento via app',
       passengerName:
-          _stringValue(data['passengerName']).isNotEmpty
-              ? _stringValue(data['passengerName'])
+          resolvePassengerName(passenger, ride: data).isNotEmpty
+              ? resolvePassengerName(passenger, ride: data)
               : 'Passageiro',
-      passengerPhotoUrl: _nullableStringValue(data['passengerPhotoUrl']),
-      passengerPhone: _stringValue(data['passengerPhone']),
+      passengerPhotoUrl: resolvePassengerPhotoUrl(passenger, ride: data),
+      passengerPhone: resolvePassengerPhone(passenger, ride: data),
       passengerRating: _nullableDoubleValue(data['passengerRating']),
       dispatchTimeoutMs: _nullableIntValue(data['dispatchTimeoutMs']),
       startedAt: _nullableDateTimeValue(data['startedAt']),
@@ -338,12 +345,6 @@ class DashboardRealtimeService {
   DateTime? _nullableDateTimeValue(dynamic value) {
     if (value == null) return null;
     return DateTime.tryParse(value.toString());
-  }
-
-  String? _nullableStringValue(dynamic value) {
-    final text = value?.toString().trim() ?? '';
-    if (text.isEmpty) return null;
-    return text;
   }
 
   String _distanceValue(dynamic value) {

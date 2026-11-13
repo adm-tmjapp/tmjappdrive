@@ -1,6 +1,7 @@
 import '../domain/dashboard_models.dart';
 import '../domain/dashboard_repository.dart';
 import 'dashboard_api.dart';
+import 'passenger_photo_url.dart';
 
 class DashboardRepositoryImpl implements DashboardRepository {
   DashboardRepositoryImpl({required DashboardApi api}) : _api = api;
@@ -61,10 +62,13 @@ class DashboardRepositoryImpl implements DashboardRepository {
 
     final pickup = _mapFrom(map['pickup'] ?? map['origin']);
     final dropoff = _mapFrom(map['dropoff'] ?? map['destination']);
-    final passenger =
-        map['passenger'] != null
-            ? _mapFrom(map['passenger'])
-            : <String, dynamic>{};
+    final passenger = _mapFrom(
+      map['passenger'] ??
+          map['rider'] ??
+          map['passengerProfile'] ??
+          map['passengerUser'] ??
+          map['customer'],
+    );
 
     final routeLabel =
         _asString(map['routeLabel']).isNotEmpty
@@ -105,15 +109,11 @@ class DashboardRepositoryImpl implements DashboardRepository {
       etaMin: eta,
       paymentMethodLabel: _paymentMethod(_asString(map['paymentMethod'])),
       passengerName:
-          _asString(passenger['name']).isNotEmpty
-              ? _asString(passenger['name'])
+          resolvePassengerName(passenger, ride: map).isNotEmpty
+              ? resolvePassengerName(passenger, ride: map)
               : 'Passageiro',
-      passengerPhotoUrl: _nullableString(
-        passenger['photoUrl'] ??
-            passenger['avatarUrl'] ??
-            passenger['imageUrl'],
-      ),
-      passengerPhone: _asString(passenger['phone']),
+      passengerPhotoUrl: resolvePassengerPhotoUrl(passenger, ride: map),
+      passengerPhone: resolvePassengerPhone(passenger, ride: map),
       passengerRating: _asNullableDouble(passenger['rating']),
       dispatchTimeoutMs: _asNullableInt(map['dispatchTimeoutMs']),
       startedAt: _asDateTimeOrNull(map['startedAt']),
@@ -233,11 +233,5 @@ class DashboardRepositoryImpl implements DashboardRepository {
   DateTime? _asDateTimeOrNull(dynamic value) {
     if (value == null) return null;
     return DateTime.tryParse(_asString(value));
-  }
-
-  String? _nullableString(dynamic value) {
-    final text = _asString(value).trim();
-    if (text.isEmpty) return null;
-    return text;
   }
 }

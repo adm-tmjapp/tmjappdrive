@@ -49,9 +49,18 @@ class RideChatApi {
   }
 
   Future<RideChatMessage> send(String rideId, String content) async {
-    final response = await _api.post(
-      Uri.parse('v2/driver/rides/$rideId/messages'),
-      body: {'content': content},
+    final normalizedContent = content.trim();
+    if (normalizedContent.isEmpty) {
+      throw Exception('Escreva uma mensagem antes de enviar.');
+    }
+
+    // O endpoint de chat exige JSON. BaseClient não adiciona Content-Type
+    // automaticamente; sem ele, o backend lê um body vazio e devolve o erro
+    // de mensagem em branco mesmo quando o motorista digitou o texto.
+    final response = await _api.client.post(
+      Uri.parse('${_api.baseUrl}v2/driver/rides/$rideId/messages'),
+      headers: await _api.getHeaders(),
+      body: jsonEncode(<String, String>{'content': normalizedContent}),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(_message(response));
