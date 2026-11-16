@@ -35,24 +35,24 @@ class AuthRepository {
     if (response.result == null) return null;
     final login = response.result!;
     if (login.token != null) {
-      prefs?.setString(Strings.prefToken, login.token!);
+      await prefs?.setString(Strings.prefToken, login.token!);
     }
     if (login.user?.name != null && login.user!.name!.trim().isNotEmpty) {
-      prefs?.setString(Strings.prefDriverName, login.user!.name!.trim());
+      await prefs?.setString(Strings.prefDriverName, login.user!.name!.trim());
     }
     if (login.user?.id != null && login.user!.id!.trim().isNotEmpty) {
-      prefs?.setString(Strings.prefDriverId, login.user!.id!.trim());
+      await prefs?.setString(Strings.prefDriverId, login.user!.id!.trim());
     }
     if (login.user?.cpfMasked != null &&
         login.user!.cpfMasked!.trim().isNotEmpty) {
-      prefs?.setString(
+      await prefs?.setString(
         Strings.prefDriverCpfMasked,
         login.user!.cpfMasked!.trim(),
       );
     }
     if (login.user?.walletAvailableMasked != null &&
         login.user!.walletAvailableMasked!.trim().isNotEmpty) {
-      prefs?.setString(
+      await prefs?.setString(
         Strings.prefDriverWalletAvailableMasked,
         login.user!.walletAvailableMasked!.trim(),
       );
@@ -89,24 +89,24 @@ class AuthRepository {
     if (response.badRequest || response.result == null) return null;
     final login = response.result!;
     if (login.token != null) {
-      prefs?.setString(Strings.prefToken, login.token!);
+      await prefs?.setString(Strings.prefToken, login.token!);
     }
     if (login.user?.name != null && login.user!.name!.trim().isNotEmpty) {
-      prefs?.setString(Strings.prefDriverName, login.user!.name!.trim());
+      await prefs?.setString(Strings.prefDriverName, login.user!.name!.trim());
     }
     if (login.user?.id != null && login.user!.id!.trim().isNotEmpty) {
-      prefs?.setString(Strings.prefDriverId, login.user!.id!.trim());
+      await prefs?.setString(Strings.prefDriverId, login.user!.id!.trim());
     }
     if (login.user?.cpfMasked != null &&
         login.user!.cpfMasked!.trim().isNotEmpty) {
-      prefs?.setString(
+      await prefs?.setString(
         Strings.prefDriverCpfMasked,
         login.user!.cpfMasked!.trim(),
       );
     }
     if (login.user?.walletAvailableMasked != null &&
         login.user!.walletAvailableMasked!.trim().isNotEmpty) {
-      prefs?.setString(
+      await prefs?.setString(
         Strings.prefDriverWalletAvailableMasked,
         login.user!.walletAvailableMasked!.trim(),
       );

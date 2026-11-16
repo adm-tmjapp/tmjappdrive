@@ -7,7 +7,9 @@ import '../../../ride_history/domain/ride_history_models.dart';
 import '../../../wallet_pix/presentation/screens/wallet_earnings_screen.dart';
 import '../../data/dashboard_api.dart';
 import '../../data/directions_route_service.dart';
+import '../../data/passenger_evaluation_store.dart';
 import '../../domain/dashboard_models.dart';
+import '../widgets/submitted_passenger_evaluation.dart';
 
 // ==========================================
 // TEMA E CONSTANTES
@@ -41,6 +43,7 @@ class _DashboardRideSummaryScreenState
     extends State<DashboardRideSummaryScreen> {
   final DashboardApi _dashboardApi = DashboardApi();
   final RideHistoryApi _historyApi = RideHistoryApi();
+  final PassengerEvaluationStore _evaluationStore = PassengerEvaluationStore();
   final TextEditingController _commentController = TextEditingController();
 
   RideHistoryDetail? _detail;
@@ -49,6 +52,7 @@ class _DashboardRideSummaryScreenState
   bool _rideCompleted = false;
   bool _showCompletedState = false;
   int _passengerRating = 4;
+  PassengerEvaluation? _submittedEvaluation;
 
   @override
   void initState() {
@@ -65,14 +69,20 @@ class _DashboardRideSummaryScreenState
   Future<void> _loadSummary() async {
     try {
       final detail = await _historyApi.getHistoryDetail(widget.ride.id);
+      final evaluation = await _evaluationStore.load(widget.ride.id);
       if (!mounted) return;
       setState(() {
         _detail = detail;
+        _submittedEvaluation = evaluation;
+        if (evaluation != null) _showCompletedState = true;
         _isLoading = false;
       });
     } catch (_) {
+      final evaluation = await _evaluationStore.load(widget.ride.id);
       if (!mounted) return;
       setState(() {
+        _submittedEvaluation = evaluation;
+        if (evaluation != null) _showCompletedState = true;
         _isLoading = false;
       });
     }
@@ -97,6 +107,7 @@ class _DashboardRideSummaryScreenState
         ride: ride,
         detail: _detail,
         earningsLabel: earningsLabel,
+        evaluation: _submittedEvaluation,
         onClose: _backToHome,
         onOpenStatement: _openStatement,
       );
@@ -383,9 +394,19 @@ class _DashboardRideSummaryScreenState
         rideId: widget.ride.id,
         rating: _passengerRating,
       );
+      final evaluation = PassengerEvaluation(
+        rating: _passengerRating,
+        comment: _commentController.text.trim(),
+      );
+      // A confirmação remota é a fonte de sucesso. O armazenamento local só
+      // garante que o recibo continue visível ao reabrir o aplicativo.
+      try {
+        await _evaluationStore.save(widget.ride.id, evaluation);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _isCompletingRide = false;
+        _submittedEvaluation = evaluation;
         _showCompletedState = true;
       });
     } on DashboardApiException catch (error) {
@@ -435,6 +456,7 @@ class _CompletedRideScreen extends StatelessWidget {
     required this.ride,
     required this.detail,
     required this.earningsLabel,
+    required this.evaluation,
     required this.onClose,
     required this.onOpenStatement,
   });
@@ -442,6 +464,7 @@ class _CompletedRideScreen extends StatelessWidget {
   final RideCardItem ride;
   final RideHistoryDetail? detail;
   final String earningsLabel;
+  final PassengerEvaluation? evaluation;
   final VoidCallback onClose;
   final VoidCallback onOpenStatement;
 
@@ -489,6 +512,10 @@ class _CompletedRideScreen extends StatelessWidget {
                     detail: detail,
                     earningsLabel: earningsLabel,
                   ),
+                  if (evaluation != null) ...[
+                    const SizedBox(height: 16),
+                    SubmittedPassengerEvaluation(evaluation: evaluation!),
+                  ],
                   const SizedBox(height: 16),
                   const _DailyGoalCard(),
                   const SizedBox(height: 32),

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:camera/camera.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../application/onboarding_providers.dart';
 import '../../domain/onboarding_models.dart';
 import '../widgets/onboarding_ui.dart';
+import 'onboarding_selfie_camera_screen.dart';
 
 class OnboardingCriminalRecordScreen extends ConsumerStatefulWidget {
   const OnboardingCriminalRecordScreen({super.key, required this.session});
@@ -26,6 +28,7 @@ class _OnboardingCriminalRecordScreenState
     extends ConsumerState<OnboardingCriminalRecordScreen> {
   final _picker = ImagePicker();
   File? _selectedFile;
+  bool _pickingMedia = false;
   static const _draftPrefix = 'onboarding.criminal_record';
 
   @override
@@ -284,39 +287,66 @@ class _OnboardingCriminalRecordScreenState
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
-    );
-    final path = result?.files.single.path;
-    if (path == null) return;
-    final file = File(path);
-    if (await file.length() > 10 * 1024 * 1024) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('O arquivo deve ter no máximo 10 MB.')),
+    if (_pickingMedia) return;
+    setState(() => _pickingMedia = true);
+    await _savePendingCapture();
+    if (!mounted) return;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
       );
-      return;
+      final path = result?.files.single.path;
+      if (path == null) {
+        await _clearPendingCapture();
+        return;
+      }
+      final file = File(path);
+      if (await file.length() > 10 * 1024 * 1024) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('O arquivo deve ter no máximo 10 MB.')),
+        );
+        return;
+      }
+      await _useImage(file);
+    } catch (_) {
+      _showCameraError();
+    } finally {
+      if (mounted) setState(() => _pickingMedia = false);
     }
-    setState(() => _selectedFile = file);
   }
 
   Future<void> _pickImage() async {
+    if (_pickingMedia) return;
+    setState(() => _pickingMedia = true);
     await _savePendingCapture();
+    if (!mounted) return;
     try {
-      final image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 70,
-        maxWidth: 1080,
-        maxHeight: 1920,
+      // Abrir a câmera do sistema por ImagePicker troca a Activity do Flutter
+      // e era a origem do encerramento relatado na etapa 5. A câmera interna
+      // mantém a captura no mesmo processo e retorna o arquivo diretamente.
+      final image = await Navigator.of(context).push<File>(
+        MaterialPageRoute(
+          builder:
+              (_) => const OnboardingSelfieCameraScreen(
+                lensDirection: CameraLensDirection.back,
+                title: 'Fotografar documento',
+                instructions:
+                    'Centralize todo o documento e garanta boa iluminação.',
+                captureLabel: 'Capturar documento',
+              ),
+        ),
       );
       if (image == null) {
         await _clearPendingCapture();
         return;
       }
-      await _useImage(File(image.path));
+      await _useImage(image);
     } catch (_) {
       _showCameraError();
+    } finally {
+      if (mounted) setState(() => _pickingMedia = false);
     }
   }
 

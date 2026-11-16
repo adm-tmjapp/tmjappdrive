@@ -12,7 +12,18 @@ import '../widgets/onboarding_ui.dart';
 /// device's external camera application, which can terminate the app's
 /// activity on lower-memory Android devices while it is in the background.
 class OnboardingSelfieCameraScreen extends StatefulWidget {
-  const OnboardingSelfieCameraScreen({super.key});
+  const OnboardingSelfieCameraScreen({
+    super.key,
+    this.lensDirection = CameraLensDirection.front,
+    this.title = 'Prova de vida',
+    this.instructions = 'Segure sua CNH aberta ao lado do rosto.',
+    this.captureLabel = 'Capturar selfie de prova de vida',
+  });
+
+  final CameraLensDirection lensDirection;
+  final String title;
+  final String instructions;
+  final String captureLabel;
 
   @override
   State<OnboardingSelfieCameraScreen> createState() =>
@@ -71,7 +82,7 @@ class _OnboardingSelfieCameraScreenState
       }
 
       _camera ??= cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.front,
+        (camera) => camera.lensDirection == widget.lensDirection,
         orElse: () => cameras.first,
       );
       final controller = CameraController(
@@ -185,7 +196,7 @@ class _OnboardingSelfieCameraScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Prova de vida',
+                    widget.title,
                     style: GoogleFonts.inter(
                       color: Colors.white,
                       fontSize: 18,
@@ -194,7 +205,7 @@ class _OnboardingSelfieCameraScreenState
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Segure sua CNH aberta ao lado do rosto.',
+                    widget.instructions,
                     style: GoogleFonts.inter(
                       color: Colors.white.withValues(alpha: 0.82),
                       fontSize: 13,
@@ -227,7 +238,7 @@ class _OnboardingSelfieCameraScreenState
               child: Center(
                 child: Semantics(
                   button: true,
-                  label: 'Capturar selfie de prova de vida',
+                  label: widget.captureLabel,
                   child: InkWell(
                     onTap: isReady ? _capture : null,
                     borderRadius: BorderRadius.circular(999),

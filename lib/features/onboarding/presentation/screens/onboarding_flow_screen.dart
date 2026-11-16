@@ -30,6 +30,7 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
     with WidgetsBindingObserver {
   bool _emailScreenOpened = false;
   bool _captureResumeChecked = false;
+  bool _hasPendingCapture = false;
 
   DriverOnboardingSession get _session =>
       DriverOnboardingSession(responseLogin: widget.responseLogin);
@@ -64,18 +65,27 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
     final criminalPending =
         prefs.getBool('onboarding.criminal_record.$userId.pending') == true;
     if (!mounted || (!profilePending && !criminalPending)) return;
+    _hasPendingCapture = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder:
-              (_) =>
-                  profilePending
-                      ? OnboardingProfilePhotoScreen(session: _session)
-                      : OnboardingCriminalRecordScreen(session: _session),
-        ),
-      );
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder:
+                  (_) =>
+                      profilePending
+                          ? OnboardingProfilePhotoScreen(session: _session)
+                          : OnboardingCriminalRecordScreen(session: _session),
+            ),
+          )
+          .whenComplete(() {
+            if (!mounted) return;
+            setState(() => _hasPendingCapture = false);
+            ref
+                .read(driverOnboardingControllerProvider(_session).notifier)
+                .load();
+          });
     });
   }
 
@@ -87,7 +97,15 @@ class _OnboardingFlowScreenState extends ConsumerState<OnboardingFlowScreen>
     final emailPending =
         snapshot?.onboardingStatus?.steps?.email?.completed != true &&
         widget.responseLogin.user?.emailVerified != true;
-    if (emailPending && !_emailScreenOpened && !state.isLoading) {
+    // Após voltar de câmera/galeria, a prioridade é recuperar o arquivo. Não
+    // abra uma segunda rota (validação de e-mail) enquanto a captura pendente
+    // ainda estiver sendo restaurada. Também não inferimos e-mail pendente sem
+    // um snapshot válido da API após uma recriação do processo.
+    if (snapshot != null &&
+        !_hasPendingCapture &&
+        emailPending &&
+        !_emailScreenOpened &&
+        !state.isLoading) {
       _emailScreenOpened = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;

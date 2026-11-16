@@ -479,8 +479,9 @@ class DashboardActiveRideScreen extends StatelessWidget {
     }
 
     final description = await _askIncidentDescription(context);
-    if (!context.mounted || description == null || description.trim().isEmpty)
+    if (!context.mounted || description == null || description.trim().isEmpty) {
       return;
+    }
     try {
       final ticketId = await _safetyApi.reportIncident(
         rideId: ride.id,
@@ -1540,11 +1541,14 @@ class _OngoingRideNavigationScreen extends StatefulWidget {
 }
 
 class _OngoingRideNavigationScreenState
-    extends State<_OngoingRideNavigationScreen> {
+    extends State<_OngoingRideNavigationScreen>
+    with WidgetsBindingObserver {
   final Completer<GoogleMapController> _mapController = Completer();
   final _directions = DirectionsRouteService();
   final DriverSafetyApi _safetyApi = DriverSafetyApi();
   StreamSubscription<Position>? _positionSubscription;
+  bool _isAppInForeground = true;
+  bool _isStartingLocation = false;
   LatLng? _driverPosition;
   List<LatLng> _roadRoute = const [];
 
@@ -1580,6 +1584,7 @@ class _OngoingRideNavigationScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_loadRideRoute());
     unawaited(_startLiveLocation());
   }
@@ -1603,11 +1608,41 @@ class _OngoingRideNavigationScreenState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _positionSubscription?.cancel();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _isAppInForeground = true;
+        unawaited(_startLiveLocation());
+        return;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _isAppInForeground = false;
+        unawaited(_stopLiveLocation());
+        return;
+    }
+  }
+
+  Future<void> _stopLiveLocation() async {
+    final subscription = _positionSubscription;
+    _positionSubscription = null;
+    await subscription?.cancel();
+  }
+
   Future<void> _startLiveLocation() async {
+    if (!_isAppInForeground ||
+        _isStartingLocation ||
+        _positionSubscription != null) {
+      return;
+    }
+    _isStartingLocation = true;
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) return;
@@ -1624,24 +1659,29 @@ class _OngoingRideNavigationScreenState
       final current = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.bestForNavigation,
       );
-      if (!mounted) return;
+      if (!mounted || !_isAppInForeground) return;
       setState(() {
         _driverPosition = LatLng(current.latitude, current.longitude);
       });
       await _fitActiveBounds();
 
+      if (!_isAppInForeground) return;
       _positionSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
           distanceFilter: 5,
         ),
       ).listen((position) {
-        if (!mounted) return;
+        if (!mounted || !_isAppInForeground) return;
         setState(() {
           _driverPosition = LatLng(position.latitude, position.longitude);
         });
       });
-    } catch (_) {}
+    } catch (_) {
+      // O mapa continua disponível se o SO interromper temporariamente o GPS.
+    } finally {
+      _isStartingLocation = false;
+    }
   }
 
   Future<void> _showSafetyCenter(BuildContext context) async {

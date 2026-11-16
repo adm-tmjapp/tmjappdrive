@@ -72,8 +72,13 @@ class RideChatApi {
   }
 
   Future<void> markRead(String rideId) async {
-    final response = await _api.patch(
-      Uri.parse('v2/driver/rides/$rideId/messages/read'),
+    // Não passe URI relativa diretamente ao Client. Em alguns caminhos do
+    // BaseClient ela chega ao http.Request sem host e gera "No host specified".
+    // O endpoint de leitura usa a mesma URL absoluta e os mesmos cabeçalhos
+    // autenticados das demais operações do chat.
+    final response = await _api.client.patch(
+      Uri.parse('${_api.baseUrl}v2/driver/rides/$rideId/messages/read'),
+      headers: await _api.getHeaders(),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(_message(response));

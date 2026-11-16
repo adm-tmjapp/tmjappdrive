@@ -91,6 +91,9 @@ android {
 }
 
 dependencies {
+    // Necessário para que os temas Theme.AppCompat usados pelo local_auth
+    // estejam disponíveis no APK em todos os níveis de Android suportados.
+    implementation("androidx.appcompat:appcompat:1.7.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 

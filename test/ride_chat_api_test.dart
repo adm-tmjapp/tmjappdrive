@@ -49,4 +49,23 @@ void main() {
   test('não envia conteúdo em branco', () async {
     expect(RideChatApi().send('ride-123', '   '), throwsA(isA<Exception>()));
   });
+
+  test('marca mensagens como lidas usando uma URI absoluta', () async {
+    late http.Request request;
+    final baseApi = BaseApi();
+    baseApi.client = MockClient((value) async {
+      request = value;
+      return http.Response('', 204);
+    });
+
+    await RideChatApi(api: baseApi).markRead('ride-123');
+
+    expect(request.method, 'PATCH');
+    expect(request.url.hasAuthority, isTrue);
+    expect(
+      request.url.toString(),
+      contains('/api/v2/driver/rides/ride-123/messages/read'),
+    );
+    expect(request.headers['accept'], 'application/json');
+  });
 }

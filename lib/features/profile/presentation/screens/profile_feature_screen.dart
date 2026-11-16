@@ -54,10 +54,12 @@ class _ProfileFeatureScreenState extends ConsumerState<ProfileFeatureScreen> {
       final prefs = await SharedPreferences.getInstance();
       final supported = await _localAuth.isDeviceSupported();
       final canCheck = supported && await _localAuth.canCheckBiometrics;
-      final enrolled =
-          canCheck
-              ? (await _localAuth.getAvailableBiometrics()).isNotEmpty
-              : false;
+      // Em Android anterior ao 10, getAvailableBiometrics pode retornar uma
+      // lista vazia para reconhecimento facial mesmo quando ele está
+      // configurado. canCheckBiometrics é a verificação apropriada para
+      // decidir se o controle deve ser oferecido; authenticate dá a mensagem
+      // específica se ainda não houver biometria cadastrada.
+      final enrolled = canCheck;
       if (!mounted) return;
       setState(() {
         _biometricAvailable = enrolled;

@@ -101,12 +101,12 @@ class WalletController extends StateNotifier<WalletState> {
     }
 
     if (amount == null || amount <= 0) {
-      state = state.copyWith(error: 'Valor invalido.');
+      state = state.copyWith(error: 'Valor inválido.');
       return false;
     }
 
     if (amount > state.availableBalance) {
-      state = state.copyWith(error: 'Saldo insuficiente para transferencia.');
+      state = state.copyWith(error: 'Saldo insuficiente para transferência.');
       return false;
     }
 
@@ -142,7 +142,7 @@ class WalletController extends StateNotifier<WalletState> {
       );
       state = state.copyWith(
         isSubmitting: false,
-        error: _errorMessage(e, 'Nao foi possivel concluir a transferencia.'),
+        error: _errorMessage(e, 'Não foi possível concluir a transferência.'),
       );
       return false;
     }

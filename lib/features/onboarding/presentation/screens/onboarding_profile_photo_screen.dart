@@ -24,6 +24,7 @@ class _OnboardingProfilePhotoScreenState
     extends ConsumerState<OnboardingProfilePhotoScreen> {
   final _picker = ImagePicker();
   File? _selectedFile;
+  bool _pickingMedia = false;
   static const _draftPrefix = 'onboarding.profile_photo';
 
   @override
@@ -156,6 +157,8 @@ class _OnboardingProfilePhotoScreenState
   }
 
   Future<void> _pick(ImageSource source) async {
+    if (_pickingMedia) return;
+    setState(() => _pickingMedia = true);
     await _savePendingCapture();
     try {
       final picked = await _picker.pickImage(
@@ -171,6 +174,8 @@ class _OnboardingProfilePhotoScreenState
       await _useImage(File(picked.path));
     } catch (_) {
       _showCameraError();
+    } finally {
+      if (mounted) setState(() => _pickingMedia = false);
     }
   }
 

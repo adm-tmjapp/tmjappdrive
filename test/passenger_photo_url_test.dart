@@ -57,4 +57,24 @@ void main() {
       'https://api.tmjapp.com.br/files/ana.jpg',
     );
   });
+
+  test(
+    'lê profile_photo dentro do envelope data retornado pelo Passageiro',
+    () {
+      final ride = <String, dynamic>{
+        'passenger': <String, dynamic>{
+          'data': <String, dynamic>{
+            'profile': <String, dynamic>{
+              'profile_photo': '/uploads/passengers/ana.jpg',
+            },
+          },
+        },
+      };
+
+      expect(
+        resolvePassengerPhotoUrl(ride['passenger'], ride: ride),
+        'https://api.tmjapp.com.br/uploads/passengers/ana.jpg',
+      );
+    },
+  );
 }

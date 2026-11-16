@@ -110,7 +110,10 @@ class _SignInScreenState extends State<SignInScreen> {
       final available = await _localAuth.getAvailableBiometrics();
       if (!mounted) return;
       setState(() {
-        _biometricAvailable = available.isNotEmpty;
+        // Ver comentário equivalente na tela de perfil: a lista pode estar
+        // vazia para face unlock em Android anterior ao 10, embora o prompt
+        // biométrico esteja disponível.
+        _biometricAvailable = true;
         _biometricType =
             available.contains(BiometricType.face)
                 ? BiometricType.face

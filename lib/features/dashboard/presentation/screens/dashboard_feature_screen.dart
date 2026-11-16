@@ -1221,7 +1221,7 @@ class _AcceptedRideCard extends StatelessWidget {
                           Icon(Icons.navigation_rounded, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'VOLTAR PARA NAVEGACAO',
+                            'VOLTAR PARA NAVEGAÇÃO',
                             style: TextStyle(
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.5,

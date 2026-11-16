@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../data/dashboard_realtime_api.dart';
@@ -12,7 +13,7 @@ import '../../../observability/app_observability.dart';
 
 typedef NewRideRequestCallback = void Function(RideCardItem ride);
 
-class DashboardRealtimeService {
+class DashboardRealtimeService with WidgetsBindingObserver {
   DashboardRealtimeService({required DashboardRealtimeApi api}) : _api = api;
 
   final DashboardRealtimeApi _api;
@@ -25,6 +26,7 @@ class DashboardRealtimeService {
 
   bool _initialized = false;
   bool _isOnline = false;
+  bool _isAppInForeground = true;
   bool _isSendingLocation = false;
   DateTime? _lastRideAlertAt;
   final Set<String> _alertedRideIds = <String>{};
@@ -36,6 +38,7 @@ class DashboardRealtimeService {
     _onNewRideRequest = onNewRideRequest;
     if (_initialized) return;
     _initialized = true;
+    WidgetsBinding.instance.addObserver(this);
 
     try {
       final permission = await _messaging.requestPermission(
@@ -75,7 +78,9 @@ class DashboardRealtimeService {
 
   Future<void> updateOperationalState({required bool isOnline}) async {
     _isOnline = isOnline;
-    if (!isOnline) {
+    // GPS de alta precisão não deve continuar sendo solicitado enquanto a
+    // Activity está pausada. As novas corridas continuam chegando por FCM.
+    if (!isOnline || !_isAppInForeground) {
       await _stopLocationTracking();
       return;
     }
@@ -113,10 +118,28 @@ class DashboardRealtimeService {
   }
 
   Future<void> dispose() async {
+    WidgetsBinding.instance.removeObserver(this);
     await _stopLocationTracking();
     await _tokenRefreshSubscription?.cancel();
     await _foregroundMessageSubscription?.cancel();
     await _messageOpenedSubscription?.cancel();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _isAppInForeground = true;
+        if (_isOnline) unawaited(_startLocationTracking());
+        return;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _isAppInForeground = false;
+        unawaited(_stopLocationTracking());
+        return;
+    }
   }
 
   Future<void> _registerCurrentToken() async {
@@ -156,7 +179,7 @@ class DashboardRealtimeService {
   }
 
   Future<void> _startLocationTracking() async {
-    if (_locationTimer != null) return;
+    if (!_isAppInForeground || _locationTimer != null) return;
 
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -173,9 +196,10 @@ class DashboardRealtimeService {
       }
 
       await _captureAndSendCurrentPosition();
+      if (!_isAppInForeground || !_isOnline) return;
       _locationTimer = Timer.periodic(
         const Duration(seconds: 10),
-        (_) => _captureAndSendCurrentPosition(),
+        (_) => unawaited(_captureAndSendCurrentPosition()),
       );
     } catch (error, stackTrace) {
       await AppObservability.recordError(
@@ -195,10 +219,25 @@ class DashboardRealtimeService {
   }
 
   Future<void> _captureAndSendCurrentPosition() async {
-    final position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.bestForNavigation,
-    );
-    await _sendLocation(position);
+    if (!_isAppInForeground || !_isOnline) return;
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.bestForNavigation,
+      );
+      if (!_isAppInForeground || !_isOnline) return;
+      await _sendLocation(position);
+    } catch (error, stackTrace) {
+      // Um callback de timer não pode deixar uma exceção de plataforma sem
+      // tratamento quando o Android estiver alternando a Activity.
+      await AppObservability.recordError(
+        error,
+        stackTrace,
+        reason: 'location_capture_failed',
+      );
+      debugPrint(
+        '[DashboardRealtimeService] capture location failed: $error\n$stackTrace',
+      );
+    }
   }
 
   Future<void> _sendLocation(Position position) async {

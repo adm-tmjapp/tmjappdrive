@@ -4,55 +4,45 @@ import '../../../config/app_env.dart';
 /// URL que possa ser exibida pelo motorista. A API pode devolver o arquivo no
 /// próprio passageiro, no perfil aninhado ou como caminho relativo.
 String? resolvePassengerPhotoUrl(Object? passenger, {Object? ride}) {
-  final passengerMap = _asMap(passenger);
-  final profile = _asMap(passengerMap['profile']);
-  final user = _asMap(passengerMap['user']);
-  final rideMap = _asMap(ride);
-
-  final value = _firstPresent(<Object?>[
-    passengerMap['profilePhotoUrl'],
-    passengerMap['profile_photo_url'],
-    passengerMap['profilePhoto'],
-    passengerMap['photoUrl'],
-    passengerMap['photo_url'],
-    passengerMap['avatarUrl'],
-    passengerMap['avatar_url'],
-    passengerMap['avatar'],
-    passengerMap['imageUrl'],
-    passengerMap['image_url'],
-    passengerMap['image'],
-    profile['profilePhotoUrl'],
-    profile['profile_photo_url'],
-    profile['profilePhoto'],
-    profile['photoUrl'],
-    profile['photo_url'],
-    profile['avatarUrl'],
-    profile['avatar_url'],
-    profile['avatar'],
-    profile['imageUrl'],
-    profile['image_url'],
-    profile['image'],
-    user['profilePhotoUrl'],
-    user['profile_photo_url'],
-    user['profilePhoto'],
-    user['photoUrl'],
-    user['photo_url'],
-    user['avatarUrl'],
-    user['avatar_url'],
-    user['avatar'],
-    user['imageUrl'],
-    user['image_url'],
-    user['image'],
-    rideMap['passengerPhotoUrl'],
-    rideMap['passenger_photo_url'],
-    rideMap['passengerPhoto'],
-    rideMap['passengerAvatarUrl'],
-    rideMap['passenger_avatar_url'],
-    rideMap['passengerProfilePhotoUrl'],
-    rideMap['passenger_profile_photo_url'],
-    rideMap['riderPhotoUrl'],
-    rideMap['rider_photo_url'],
-  ]);
+  final value = _firstValue(
+    <Object?>[passenger, ride],
+    const <String>[
+      'profilePhotoUrl',
+      'profile_photo_url',
+      'profilePhoto',
+      'profile_photo',
+      'photoUrl',
+      'photo_url',
+      'photo',
+      'avatarUrl',
+      'avatar_url',
+      'avatar',
+      'imageUrl',
+      'image_url',
+      'image',
+      'profileImage',
+      'profile_image',
+      'photoPath',
+      'photo_path',
+      'avatarPath',
+      'avatar_path',
+      'imagePath',
+      'image_path',
+      'pictureUrl',
+      'picture_url',
+      'picture',
+      'passengerPhotoUrl',
+      'passenger_photo_url',
+      'passengerPhoto',
+      'passenger_photo',
+      'passengerAvatarUrl',
+      'passenger_avatar_url',
+      'passengerProfilePhotoUrl',
+      'passenger_profile_photo_url',
+      'riderPhotoUrl',
+      'rider_photo_url',
+    ],
+  );
   final photoValue = _photoValue(value);
   if (photoValue == null) return null;
 
@@ -61,6 +51,7 @@ String? resolvePassengerPhotoUrl(Object? passenger, {Object? ride}) {
   final parsed = Uri.tryParse(raw);
   if (parsed == null) return null;
   if (parsed.hasScheme) return parsed.toString();
+  if (raw.startsWith('//')) return 'https:$raw';
 
   final apiBase = Uri.parse(AppEnv.apiBaseUrl);
   final origin = apiBase.replace(path: '/', query: null, fragment: null);
@@ -68,33 +59,23 @@ String? resolvePassengerPhotoUrl(Object? passenger, {Object? ride}) {
 }
 
 String resolvePassengerName(Object? passenger, {Object? ride}) {
-  final passengerMap = _asMap(passenger);
-  final profile = _asMap(passengerMap['profile']);
-  final user = _asMap(passengerMap['user']);
-  final rideMap = _asMap(ride);
-  final name = _firstPresent(<Object?>[
-    passengerMap['name'],
-    passengerMap['fullName'],
-    passengerMap['full_name'],
-    passengerMap['displayName'],
-    passengerMap['display_name'],
-    profile['name'],
-    profile['fullName'],
-    profile['full_name'],
-    user['name'],
-    user['fullName'],
-    user['full_name'],
-    user['displayName'],
-    rideMap['passengerName'],
-    rideMap['passenger_name'],
-    rideMap['riderName'],
-    rideMap['rider_name'],
-    rideMap['customerName'],
-    rideMap['customer_name'],
+  final maps = _relatedMaps(<Object?>[passenger, ride]);
+  final name = _firstValueFromMaps(maps, const <String>[
+    'name',
+    'fullName',
+    'full_name',
+    'displayName',
+    'display_name',
+    'passengerName',
+    'passenger_name',
+    'riderName',
+    'rider_name',
+    'customerName',
+    'customer_name',
   ]);
   if (name != null) return name.toString().trim();
 
-  for (final map in <Map<String, dynamic>>[passengerMap, profile, user]) {
+  for (final map in maps) {
     final first = _text(map['firstName'] ?? map['first_name']);
     final last = _text(map['lastName'] ?? map['last_name']);
     final fullName = <String>[
@@ -107,24 +88,66 @@ String resolvePassengerName(Object? passenger, {Object? ride}) {
 }
 
 String resolvePassengerPhone(Object? passenger, {Object? ride}) {
-  final passengerMap = _asMap(passenger);
-  final profile = _asMap(passengerMap['profile']);
-  final user = _asMap(passengerMap['user']);
-  final rideMap = _asMap(ride);
   return _text(
-    _firstPresent(<Object?>[
-      passengerMap['phone'],
-      passengerMap['phoneNumber'],
-      passengerMap['phone_number'],
-      profile['phone'],
-      user['phone'],
-      user['phoneNumber'],
-      rideMap['passengerPhone'],
-      rideMap['passenger_phone'],
-      rideMap['riderPhone'],
-      rideMap['customerPhone'],
-    ]),
+    _firstValue(
+      <Object?>[passenger, ride],
+      const <String>[
+        'phone',
+        'phoneNumber',
+        'phone_number',
+        'passengerPhone',
+        'passenger_phone',
+        'riderPhone',
+        'customerPhone',
+      ],
+    ),
   );
+}
+
+Object? _firstValue(List<Object?> sources, List<String> keys) =>
+    _firstValueFromMaps(_relatedMaps(sources), keys);
+
+Object? _firstValueFromMaps(
+  List<Map<String, dynamic>> maps,
+  List<String> keys,
+) {
+  for (final map in maps) {
+    final value = _firstPresent(keys.map((key) => map[key]).toList());
+    if (value != null) return value;
+  }
+  return null;
+}
+
+/// O contrato da corrida pode colocar o passageiro dentro de `data`, `user`,
+/// `profile`, `rider` ou `customer`. Percorremos somente esses invólucros
+/// conhecidos para não depender de uma única versão da API.
+List<Map<String, dynamic>> _relatedMaps(List<Object?> sources) {
+  const nestedKeys = <String>[
+    'data',
+    'passenger',
+    'rider',
+    'customer',
+    'passengerProfile',
+    'passengerUser',
+    'profile',
+    'user',
+  ];
+  final result = <Map<String, dynamic>>[];
+  final pending = <Map<String, dynamic>>[
+    for (final source in sources) _asMap(source),
+  ];
+  final seen = <Map<String, dynamic>>{};
+
+  while (pending.isNotEmpty && result.length < 24) {
+    final map = pending.removeAt(0);
+    if (map.isEmpty || !seen.add(map)) continue;
+    result.add(map);
+    for (final key in nestedKeys) {
+      final nested = _asMap(map[key]);
+      if (nested.isNotEmpty) pending.add(nested);
+    }
+  }
+  return result;
 }
 
 Object? _firstPresent(List<Object?> values) {
